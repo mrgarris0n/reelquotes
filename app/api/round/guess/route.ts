@@ -1,23 +1,23 @@
 import { NextResponse } from "next/server";
-import { getRound, updateRound } from "@/lib/rounds";
+import { decodeRound, encodeRound } from "@/lib/token";
 import { matches } from "@/lib/matcher";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;
-  const round = getRound(id);
-  if (!round) return NextResponse.json({ error: "Round not found" }, { status: 404 });
+export async function POST(req: Request) {
+  let body: { token?: string; guess?: string } = {};
+  try {
+    body = await req.json();
+  } catch {
+    /* empty */
+  }
+  const token = body.token ?? "";
+  const round = decodeRound(token);
+  if (!round) return NextResponse.json({ error: "Invalid round token" }, { status: 400 });
   if (round.status !== "active") {
     return NextResponse.json({ error: "Round already finished" }, { status: 410 });
   }
 
-  let body: { guess?: string } = {};
-  try {
-    body = await req.json();
-  } catch {
-    /* empty body */
-  }
   const guess = (body.guess ?? "").trim();
   if (!guess) {
     return NextResponse.json({ error: "Empty guess — call /skip instead" }, { status: 400 });
@@ -25,7 +25,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   if (matches(guess, round.acceptableTitles)) {
     round.status = "won";
-    updateRound(round);
     return NextResponse.json({
       correct: true,
       title: round.title,
@@ -39,7 +38,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const nextIndex = round.index + 1;
   if (nextIndex >= round.quotes.length) {
     round.status = "lost";
-    updateRound(round);
     return NextResponse.json({
       correct: false,
       failed: true,
@@ -51,10 +49,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
 
   round.index = nextIndex;
-  updateRound(round);
   return NextResponse.json({
     correct: false,
     failed: false,
+    token: encodeRound(round),
     quote: round.quotes[nextIndex],
     index: nextIndex,
     total: round.quotes.length,

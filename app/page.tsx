@@ -18,7 +18,7 @@ type Phase =
   | { kind: "loading" }
   | {
       kind: "playing";
-      roundId: string;
+      token: string;
       quote: Quote;
       index: number;
       total: number;
@@ -95,7 +95,7 @@ export default function Page() {
       }
       setPhase({
         kind: "playing",
-        roundId: data.roundId,
+        token: data.token,
         quote: data.quote,
         index: data.index,
         total: data.total,
@@ -126,10 +126,10 @@ export default function Page() {
   async function sendGuess(g: string) {
     if (phase.kind !== "playing") return;
     const indexAtGuess = phase.index;
-    const res = await fetch(`/api/round/${phase.roundId}/guess`, {
+    const res = await fetch("/api/round/guess", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guess: g }),
+      body: JSON.stringify({ token: phase.token, guess: g }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -163,7 +163,7 @@ export default function Page() {
     // Wrong guess but more quotes remain — advance like a skip.
     setPhase({
       kind: "playing",
-      roundId: phase.roundId,
+      token: data.token,
       quote: data.quote,
       index: data.index,
       total: data.total,
@@ -174,8 +174,13 @@ export default function Page() {
 
   async function skip() {
     if (phase.kind !== "playing") return;
+    const tokenAtSkip = phase.token;
     setPhase({ ...phase, pendingSkip: true });
-    const res = await fetch(`/api/round/${phase.roundId}/skip`, { method: "POST" });
+    const res = await fetch("/api/round/skip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: tokenAtSkip }),
+    });
     const data = await res.json();
     if (!res.ok) {
       setPhase({ kind: "error", message: data.error ?? "Skip failed" });
@@ -192,7 +197,7 @@ export default function Page() {
     } else {
       setPhase({
         kind: "playing",
-        roundId: phase.roundId,
+        token: data.token,
         quote: data.quote,
         index: data.index,
         total: data.total,

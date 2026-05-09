@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { pickRandom } from "@/lib/pool";
 import { scrapeQuotes, InsufficientQuotesError } from "@/lib/scraper";
 import { buildAcceptableTitles } from "@/lib/matcher";
-import { createRound } from "@/lib/rounds";
+import { encodeRound } from "@/lib/token";
 import type { Filters, RoundState } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -45,9 +45,8 @@ export async function POST(req: Request) {
         status: "active",
         startedAt: Date.now(),
       };
-      createRound(round);
       return NextResponse.json({
-        roundId: round.id,
+        token: encodeRound(round),
         quote: round.quotes[0],
         index: 0,
         total: round.quotes.length,
