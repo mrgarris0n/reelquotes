@@ -47,13 +47,9 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
-function QuoteBlock({ quote, scrollable = false }: { quote: Quote; scrollable?: boolean }) {
+function QuoteBlock({ quote }: { quote: Quote }) {
   return (
-    <div
-      className={`rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 font-mono text-base leading-relaxed shadow-inner ${
-        scrollable ? "max-h-[50vh] overflow-y-auto" : ""
-      }`}
-    >
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 font-mono text-base leading-relaxed shadow-inner">
       {quote.lines.map((line, i) => (
         <p key={i} className="mb-2 last:mb-0">
           {line.speaker ? (
@@ -281,23 +277,29 @@ export default function Page() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
-      <header className="mb-10 space-y-4">
-        <Image
-          src="/logo.png"
-          alt="ReelQuotes — Movie Quote Trivia"
-          width={1408}
-          height={768}
-          priority
-          className="h-auto w-full rounded-md shadow-lg"
-        />
+      <header className="mb-10 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Image
+            src="/logo.png"
+            alt=""
+            width={352}
+            height={311}
+            priority
+            className="h-16 w-auto sm:h-20"
+          />
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">ReelQuotes</h1>
+            <p className="mt-2 text-zinc-400">
+              Guess the movie from its quotes. Skip with an empty guess. Five quotes max per round.
+            </p>
+          </div>
+        </div>
         {phase.kind !== "setup" && (
-          <div className="flex justify-end">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right">
-              <div className="text-xs uppercase tracking-wider text-zinc-500">Score</div>
-              <div className="text-2xl font-bold tabular-nums text-amber-300">{score}</div>
-              <div className="text-xs text-zinc-500">
-                {roundsWon} round{roundsWon === 1 ? "" : "s"}
-              </div>
+          <div className="shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right">
+            <div className="text-xs uppercase tracking-wider text-zinc-500">Score</div>
+            <div className="text-2xl font-bold tabular-nums text-amber-300">{score}</div>
+            <div className="text-xs text-zinc-500">
+              {roundsWon} round{roundsWon === 1 ? "" : "s"}
             </div>
           </div>
         )}
@@ -378,12 +380,9 @@ export default function Page() {
             </div>
           )}
 
-          <QuoteBlock quote={phase.quote} scrollable />
+          <QuoteBlock quote={phase.quote} />
 
-          <form
-            onSubmit={submit}
-            className="sticky bottom-0 -mx-6 space-y-3 border-t border-zinc-800 bg-[#0b0b0f] px-6 pb-3 pt-4"
-          >
+          <form onSubmit={submit} className="space-y-3">
             <div className="relative">
               <input
                 type="text"
