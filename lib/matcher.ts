@@ -54,3 +54,18 @@ export function matches(guess: string, acceptable: string[]): boolean {
   }
   return false;
 }
+
+/**
+ * Strict match for explicit picks (e.g. clicking a combobox option):
+ * the guess must equal the full canonical title after normalization,
+ * with a leading article optionally dropped on either side. No subtitle
+ * stripping — picking "The Hunger Games" must NOT match a round whose
+ * answer is "The Hunger Games: Catching Fire".
+ */
+export function matchesExact(guess: string, canonical: string): boolean {
+  const g = normalize(guess);
+  if (!g) return false;
+  if (g === canonical) return true;
+  if (withoutArticle(g) === withoutArticle(canonical)) return true;
+  return false;
+}

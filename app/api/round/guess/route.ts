@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { decodeRound, decodeScore, encodeRound, encodeScore } from "@/lib/token";
-import { matches } from "@/lib/matcher";
+import { matches, matchesExact } from "@/lib/matcher";
 import type { Difficulty, ScoreState } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
 
 export async function POST(req: Request) {
-  let body: { token?: string; scoreToken?: string; guess?: string } = {};
+  let body: { token?: string; scoreToken?: string; guess?: string; exact?: boolean } = {};
   try {
     body = await req.json();
   } catch {
@@ -26,7 +26,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Empty guess — call /skip instead" }, { status: 400 });
   }
 
-  if (matches(guess, round.acceptableTitles)) {
+  // Combobox picks come with `exact: true` and are checked against the full
+  // canonical title only — no subtitle/article stripping fuzz. Free-text
+  // submissions go through the lenient fuzzy matcher.
+  const isMatch = body.exact
+    ? matchesExact(guess, round.acceptableTitles[0] ?? "")
+    : matches(guess, round.acceptableTitles);
+  if (isMatch) {
     round.status = "won";
     const points = POINTS_PER_QUOTE[round.index] ?? 0;
 

@@ -165,21 +165,21 @@ export default function Page() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (phase.kind !== "playing") return;
-    const picked =
-      highlight >= 0 && matches[highlight] ? matches[highlight].title : guess.trim();
+    const fromDropdown = highlight >= 0 && matches[highlight];
+    const picked = fromDropdown ? matches[highlight].title : guess.trim();
     if (picked === "") {
       await skip();
     } else {
-      await sendGuess(picked);
+      await sendGuess(picked, Boolean(fromDropdown));
     }
   }
 
-  async function sendGuess(g: string) {
+  async function sendGuess(g: string, exact = false) {
     if (phase.kind !== "playing") return;
     const res = await fetch("/api/round/guess", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: phase.token, scoreToken, guess: g }),
+      body: JSON.stringify({ token: phase.token, scoreToken, guess: g, exact }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -472,7 +472,7 @@ export default function Page() {
                         e.preventDefault();
                         setOpen(false);
                         setHighlight(-1);
-                        void sendGuess(m.title);
+                        void sendGuess(m.title, true);
                       }}
                       className={`flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2 text-sm ${
                         i === highlight
