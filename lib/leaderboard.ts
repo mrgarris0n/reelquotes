@@ -1,4 +1,4 @@
-import { head, put } from "@vercel/blob";
+import { get, put, BlobNotFoundError } from "@vercel/blob";
 import type { LeaderboardEntry } from "./types";
 
 const BLOB_KEY = "leaderboard.json";
@@ -12,22 +12,21 @@ export function sanitizeName(input: string): string {
 }
 
 async function readEntries(): Promise<LeaderboardEntry[]> {
-  // `head` doesn't return content; we use `list` to find the blob URL, then fetch it.
-  // If the blob doesn't exist yet, return an empty list.
   try {
-    const meta = await head(BLOB_KEY);
-    const res = await fetch(meta.url, { cache: "no-store" });
-    if (!res.ok) return [];
-    const parsed = (await res.json()) as LeaderboardEntry[];
+    const result = await get(BLOB_KEY, { access: "private" });
+    if (!result || result.statusCode !== 200) return [];
+    const text = await new Response(result.stream).text();
+    const parsed = JSON.parse(text) as LeaderboardEntry[];
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+  } catch (err) {
+    if (err instanceof BlobNotFoundError) return [];
+    throw err;
   }
 }
 
 async function writeEntries(entries: LeaderboardEntry[]): Promise<void> {
   await put(BLOB_KEY, JSON.stringify(entries), {
-    access: "public",
+    access: "private",
     contentType: "application/json",
     allowOverwrite: true,
     addRandomSuffix: false,
@@ -47,7 +46,6 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 export async function submitEntry(entry: LeaderboardEntry): Promise<number | null> {
   const existing = await readEntries();
   if (existing.some((e) => e.sessionId === entry.sessionId)) {
-    // Already recorded — find its rank in the trimmed top 20.
     const sorted = [...existing].sort((a, b) => b.score - a.score).slice(0, MAX_ENTRIES);
     const idx = sorted.findIndex((e) => e.sessionId === entry.sessionId);
     return idx === -1 ? null : idx + 1;
@@ -58,4 +56,3 @@ export async function submitEntry(entry: LeaderboardEntry): Promise<number | nul
   const idx = next.findIndex((e) => e.sessionId === entry.sessionId);
   return idx === -1 ? null : idx + 1;
 }
-
