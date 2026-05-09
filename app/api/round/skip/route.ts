@@ -29,10 +29,12 @@ export async function POST(req: Request) {
   }
 
   round.index = nextIndex;
+  const difficulty = round.difficulty ?? "hard";
   return NextResponse.json({
     token: encodeRound(round),
     quote: round.quotes[nextIndex],
     index: nextIndex,
     total: round.quotes.length,
+    year: difficulty === "hard" ? undefined : round.year,
   });
 }

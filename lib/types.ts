@@ -34,6 +34,8 @@ export interface Filters {
 
 export type RoundStatus = "active" | "won" | "lost";
 
+export type Difficulty = "easy" | "normal" | "hard";
+
 export interface RoundState {
   id: string;
   imdbId: string;
@@ -44,6 +46,7 @@ export interface RoundState {
   index: number;
   status: RoundStatus;
   startedAt: number;
+  difficulty: Difficulty;
 }
 
 export interface ScoreState {
@@ -52,6 +55,7 @@ export interface ScoreState {
   roundsWon: number;
   startedAt: number;
   lastUpdatedAt: number;
+  difficulty: Difficulty;
 }
 
 export interface LeaderboardEntry {
@@ -60,4 +64,5 @@ export interface LeaderboardEntry {
   roundsWon: number;
   sessionId: string;
   submittedAt: number;
+  difficulty: Difficulty;
 }

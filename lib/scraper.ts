@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Quote } from "./types";
+import type { Difficulty, Quote } from "./types";
 
 export class InsufficientQuotesError extends Error {
   constructor(public imdbId: string, public found: number) {
@@ -45,11 +45,15 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-export async function scrapeQuotes(imdbId: string): Promise<Quote[]> {
+export async function scrapeQuotes(
+  imdbId: string,
+  difficulty: Difficulty,
+): Promise<Quote[]> {
   const all = loadAll();
   const pool = all[imdbId];
   if (!pool || pool.length < REQUIRED_QUOTES) {
     throw new InsufficientQuotesError(imdbId, pool?.length ?? 0);
   }
-  return shuffle(pool).slice(0, REQUIRED_QUOTES).map(anonymize);
+  const picked = shuffle(pool).slice(0, REQUIRED_QUOTES);
+  return difficulty === "easy" ? picked : picked.map(anonymize);
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { decodeRound, decodeScore, encodeRound, encodeScore } from "@/lib/token";
 import { matches } from "@/lib/matcher";
-import type { ScoreState } from "@/lib/types";
+import type { Difficulty, ScoreState } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
   if (round.status !== "active") {
     return NextResponse.json({ error: "Round already finished" }, { status: 410 });
   }
+  const difficulty: Difficulty = round.difficulty ?? "hard";
 
   const guess = (body.guess ?? "").trim();
   if (!guess) {
@@ -29,8 +30,6 @@ export async function POST(req: Request) {
     round.status = "won";
     const points = POINTS_PER_QUOTE[round.index] ?? 0;
 
-    // Update or initialize the cumulative score token. If a token was passed
-    // in, we trust its (signed) score; otherwise we start a new session.
     let session: ScoreState | null = body.scoreToken ? decodeScore(body.scoreToken) : null;
     if (!session) {
       session = {
@@ -39,6 +38,7 @@ export async function POST(req: Request) {
         roundsWon: 0,
         startedAt: Date.now(),
         lastUpdatedAt: Date.now(),
+        difficulty,
       };
     }
     session.score += points;
@@ -80,5 +80,6 @@ export async function POST(req: Request) {
     quote: round.quotes[nextIndex],
     index: nextIndex,
     total: round.quotes.length,
+    year: difficulty === "hard" ? undefined : round.year,
   });
 }

@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { decodeScore } from "@/lib/token";
 import { getLeaderboard, sanitizeName, submitEntry, NAME_MAX_LEN } from "@/lib/leaderboard";
-import type { LeaderboardEntry } from "@/lib/types";
+import type { Difficulty, LeaderboardEntry } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+const VALID: Difficulty[] = ["easy", "normal", "hard"];
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const raw = url.searchParams.get("difficulty");
+  const difficulty = VALID.includes(raw as Difficulty) ? (raw as Difficulty) : undefined;
   try {
-    const entries = await getLeaderboard();
+    const entries = await getLeaderboard(difficulty);
     return NextResponse.json({ entries });
   } catch (err) {
     console.error("Leaderboard read failed:", err);
@@ -46,6 +51,7 @@ export async function POST(req: Request) {
     roundsWon: session.roundsWon,
     sessionId: session.id,
     submittedAt: Date.now(),
+    difficulty: session.difficulty ?? "hard",
   };
 
   try {

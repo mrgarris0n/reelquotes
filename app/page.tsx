@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Decade, Filters, Quote } from "@/lib/types";
+import type { Decade, Difficulty, Filters, Quote } from "@/lib/types";
 
 interface TitleEntry {
   title: string;
@@ -11,6 +11,12 @@ interface TitleEntry {
 }
 
 const DECADES: Decade[] = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
+
+const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
+  { id: "easy", label: "Easy", hint: "Real character names · year shown" },
+  { id: "normal", label: "Normal", hint: "Anonymized characters · year shown" },
+  { id: "hard", label: "Hard", hint: "Anonymized characters · no year" },
+];
 
 const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
 
@@ -23,6 +29,7 @@ type Phase =
       quote: Quote;
       index: number;
       total: number;
+      year?: number;
       pendingSkip?: boolean;
       lastWrongGuess?: string;
     }
@@ -69,6 +76,7 @@ function QuoteBlock({ quote }: { quote: Quote }) {
 export default function Page() {
   const [phase, setPhase] = useState<Phase>({ kind: "setup" });
   const [decades, setDecades] = useState<Decade[]>([]);
+  const [difficulty, setDifficulty] = useState<Difficulty>("normal");
   const [guess, setGuess] = useState("");
   const [score, setScore] = useState(0);
   const [roundsWon, setRoundsWon] = useState(0);
@@ -124,7 +132,7 @@ export default function Page() {
       const res = await fetch("/api/round/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filters: currentFilters() }),
+        body: JSON.stringify({ filters: currentFilters(), difficulty, scoreToken }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -137,6 +145,7 @@ export default function Page() {
         quote: data.quote,
         index: data.index,
         total: data.total,
+        year: data.year,
       });
       clearGuess();
     } catch (err) {
@@ -209,6 +218,7 @@ export default function Page() {
       quote: data.quote,
       index: data.index,
       total: data.total,
+      year: data.year,
       lastWrongGuess: g,
     });
     clearGuess();
@@ -243,6 +253,7 @@ export default function Page() {
         quote: data.quote,
         index: data.index,
         total: data.total,
+        year: data.year,
       });
       clearGuess();
     }
@@ -337,6 +348,29 @@ export default function Page() {
             </p>
           </div>
 
+          <div>
+            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Difficulty</h2>
+            <div className="flex flex-wrap gap-2">
+              {DIFFICULTIES.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => setDifficulty(d.id)}
+                  title={d.hint}
+                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                    difficulty === d.id
+                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
+                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              {DIFFICULTIES.find((d) => d.id === difficulty)?.hint}
+            </p>
+          </div>
+
           <button
             onClick={startGame}
             className="w-full rounded-lg bg-amber-300 px-6 py-3 font-semibold text-zinc-900 transition hover:bg-amber-200"
@@ -369,6 +403,11 @@ export default function Page() {
                 · worth {POINTS_PER_QUOTE[phase.index]} pt
                 {POINTS_PER_QUOTE[phase.index] === 1 ? "" : "s"}
               </span>
+              {phase.year !== undefined && (
+                <span className="ml-2 rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-xs text-amber-200">
+                  Released in {phase.year}
+                </span>
+              )}
             </span>
             <span>{phase.pendingSkip ? "Skipping…" : null}</span>
           </div>

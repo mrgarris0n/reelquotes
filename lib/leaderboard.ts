@@ -1,5 +1,5 @@
 import { get, put, BlobNotFoundError } from "@vercel/blob";
-import type { LeaderboardEntry } from "./types";
+import type { Difficulty, LeaderboardEntry } from "./types";
 
 const BLOB_KEY = "leaderboard.json";
 const MAX_ENTRIES = 20;
@@ -17,7 +17,9 @@ async function readEntries(): Promise<LeaderboardEntry[]> {
     if (!result || result.statusCode !== 200) return [];
     const text = await new Response(result.stream).text();
     const parsed = JSON.parse(text) as LeaderboardEntry[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Backfill: entries written before difficulty existed are treated as "hard".
+    return parsed.map((e) => ({ ...e, difficulty: e.difficulty ?? "hard" }));
   } catch (err) {
     if (err instanceof BlobNotFoundError) return [];
     throw err;
@@ -33,9 +35,12 @@ async function writeEntries(entries: LeaderboardEntry[]): Promise<void> {
   });
 }
 
-export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+export async function getLeaderboard(
+  difficulty?: Difficulty,
+): Promise<LeaderboardEntry[]> {
   const entries = await readEntries();
-  return entries.sort((a, b) => b.score - a.score).slice(0, MAX_ENTRIES);
+  const filtered = difficulty ? entries.filter((e) => e.difficulty === difficulty) : entries;
+  return filtered.sort((a, b) => b.score - a.score).slice(0, MAX_ENTRIES);
 }
 
 /**

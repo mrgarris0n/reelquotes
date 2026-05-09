@@ -1,14 +1,34 @@
 import Link from "next/link";
 import { getLeaderboard } from "@/lib/leaderboard";
+import type { Difficulty } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export default async function LeaderboardPage() {
+const FILTERS: { id: Difficulty | "all"; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "easy", label: "Easy" },
+  { id: "normal", label: "Normal" },
+  { id: "hard", label: "Hard" },
+];
+
+const VALID: Difficulty[] = ["easy", "normal", "hard"];
+
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ difficulty?: string }>;
+}) {
+  const sp = await searchParams;
+  const raw = sp.difficulty;
+  const active: Difficulty | undefined = VALID.includes(raw as Difficulty)
+    ? (raw as Difficulty)
+    : undefined;
+
   let entries: Awaited<ReturnType<typeof getLeaderboard>> = [];
   let error: string | null = null;
   try {
-    entries = await getLeaderboard();
+    entries = await getLeaderboard(active);
   } catch (err) {
     error = (err as Error).message;
   }
@@ -25,6 +45,26 @@ export default async function LeaderboardPage() {
         </Link>
       </header>
 
+      <div className="mb-6 flex flex-wrap gap-2">
+        {FILTERS.map((f) => {
+          const isActive = (f.id === "all" && !active) || f.id === active;
+          const href = f.id === "all" ? "/leaderboard" : `/leaderboard?difficulty=${f.id}`;
+          return (
+            <Link
+              key={f.id}
+              href={href}
+              className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                isActive
+                  ? "border-amber-300 bg-amber-300/10 text-amber-200"
+                  : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+              }`}
+            >
+              {f.label}
+            </Link>
+          );
+        })}
+      </div>
+
       {error && (
         <div className="rounded-xl border border-rose-400/40 bg-rose-400/10 p-4 text-sm text-rose-200">
           Couldn't load the leaderboard: {error}
@@ -32,7 +72,10 @@ export default async function LeaderboardPage() {
       )}
 
       {!error && entries.length === 0 && (
-        <p className="text-zinc-400">No entries yet — be the first to make the board.</p>
+        <p className="text-zinc-400">
+          No entries yet
+          {active ? ` for ${active} mode` : ""} — be the first to make the board.
+        </p>
       )}
 
       {entries.length > 0 && (
@@ -55,6 +98,11 @@ export default async function LeaderboardPage() {
                   {i + 1}
                 </span>
                 <span className="font-semibold text-zinc-100">{e.name}</span>
+                {!active && (
+                  <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs uppercase tracking-wider text-zinc-400">
+                    {e.difficulty}
+                  </span>
+                )}
               </div>
               <div className="flex items-baseline gap-3 text-right">
                 <span className="text-lg font-bold tabular-nums text-amber-300">
