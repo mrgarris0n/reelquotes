@@ -510,6 +510,18 @@ export default function Page() {
           </button>
         </section>
       )}
+
+      <footer className="mt-16 border-t border-zinc-800 pt-6 text-center text-xs text-zinc-500">
+        Created by{" "}
+        <a
+          href="https://github.com/mrgarris0n"
+          target="_blank"
+          rel="noreferrer"
+          className="text-zinc-300 underline-offset-2 hover:text-amber-300 hover:underline"
+        >
+          mrgarris0n
+        </a>
+      </footer>
     </main>
   );
 }
