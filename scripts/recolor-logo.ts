@@ -9,7 +9,8 @@
  * Target palette (dark theme):
  *   - cream  → transparent
  *   - navy   → zinc-100 (#e4e4e7)
- *   - gold   → amber-300 (#fcd34d)
+ *   - gold   → amber-700 (#b45309) — dark enough to stand out from the
+ *             light camera body
  *
  * Pixels at edges (anti-aliased) get a smooth alpha based on cream-ness
  * so the output has clean, soft edges on the dark background.
@@ -49,9 +50,9 @@ async function main(): Promise<void> {
       out[i + 1] = 0xe4;
       out[i + 2] = 0xe7;
     } else {
-      out[i] = 0xfc;
-      out[i + 1] = 0xd3;
-      out[i + 2] = 0x4d;
+      out[i] = 0xb4;
+      out[i + 1] = 0x53;
+      out[i + 2] = 0x09;
     }
     out[i + 3] = Math.round(aIn * opacity);
   }
