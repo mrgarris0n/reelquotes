@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+dist
+.env*.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# generated quote cache
+.cache/
+
+# generated movie pool (regenerate with `npm run build:pool`)
+data/movies.json
+!data/movies.seed.json
+.env
+.mcp.json
