@@ -18,6 +18,10 @@ export function poolSize(): number {
   return loadPool().length;
 }
 
+export function listTitles(): { title: string; year: number }[] {
+  return loadPool().map((m) => ({ title: m.title, year: m.year }));
+}
+
 export function pickRandom(filters: Filters = {}): Movie {
   const all = loadPool();
   const tiers = filters.tiers && filters.tiers.length > 0 ? filters.tiers : DEFAULT_TIERS;

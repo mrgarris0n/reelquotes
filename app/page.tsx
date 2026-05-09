@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { Decade, Filters, Quote } from "@/lib/types";
+
+interface TitleEntry {
+  title: string;
+  year: number;
+}
 
 const DECADES: Decade[] = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
 
@@ -66,6 +71,37 @@ export default function Page() {
   const [guess, setGuess] = useState("");
   const [score, setScore] = useState(0);
   const [roundsWon, setRoundsWon] = useState(0);
+  const [titles, setTitles] = useState<TitleEntry[]>([]);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
+
+  useEffect(() => {
+    fetch("/api/titles")
+      .then((r) => r.json())
+      .then((d: { titles: TitleEntry[] }) => setTitles(d.titles))
+      .catch(() => {
+        // Combobox falls back to plain text input if titles fail to load.
+      });
+  }, []);
+
+  const matches = useMemo<TitleEntry[]>(() => {
+    const q = guess.trim().toLowerCase();
+    if (!q) return [];
+    const prefix: TitleEntry[] = [];
+    const contains: TitleEntry[] = [];
+    for (const t of titles) {
+      const tl = t.title.toLowerCase();
+      if (tl.startsWith(q)) prefix.push(t);
+      else if (tl.includes(q)) contains.push(t);
+    }
+    return [...prefix, ...contains].slice(0, 8);
+  }, [titles, guess]);
+
+  function clearGuess(): void {
+    setGuess("");
+    setOpen(false);
+    setHighlight(-1);
+  }
 
   function currentFilters(): Filters {
     const f: Filters = {};
@@ -93,7 +129,7 @@ export default function Page() {
         index: data.index,
         total: data.total,
       });
-      setGuess("");
+      clearGuess();
     } catch (err) {
       setPhase({ kind: "error", message: (err as Error).message });
     }
@@ -108,11 +144,12 @@ export default function Page() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (phase.kind !== "playing") return;
-    const trimmed = guess.trim();
-    if (trimmed === "") {
+    const picked =
+      highlight >= 0 && matches[highlight] ? matches[highlight].title : guess.trim();
+    if (picked === "") {
       await skip();
     } else {
-      await sendGuess(trimmed);
+      await sendGuess(picked);
     }
   }
 
@@ -162,7 +199,7 @@ export default function Page() {
       total: data.total,
       lastWrongGuess: g,
     });
-    setGuess("");
+    clearGuess();
   }
 
   async function skip() {
@@ -195,7 +232,7 @@ export default function Page() {
         index: data.index,
         total: data.total,
       });
-      setGuess("");
+      clearGuess();
     }
   }
 
@@ -292,14 +329,71 @@ export default function Page() {
           <QuoteBlock quote={phase.quote} />
 
           <form onSubmit={submit} className="space-y-3">
-            <input
-              type="text"
-              value={guess}
-              onChange={(e) => setGuess(e.target.value)}
-              autoFocus
-              placeholder="Type the movie title — or leave blank to skip"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-lg outline-none placeholder:text-zinc-600 focus:border-amber-300"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={guess}
+                onChange={(e) => {
+                  setGuess(e.target.value);
+                  setOpen(true);
+                  setHighlight(-1);
+                }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => {
+                  // small delay so a mousedown on a dropdown item still registers
+                  window.setTimeout(() => setOpen(false), 120);
+                }}
+                onKeyDown={(e) => {
+                  if (!open || matches.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlight((h) => Math.min(h + 1, matches.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlight((h) => Math.max(h - 1, -1));
+                  } else if (e.key === "Escape") {
+                    setOpen(false);
+                    setHighlight(-1);
+                  }
+                }}
+                autoFocus
+                autoComplete="off"
+                placeholder="Type the movie title — or leave blank to skip"
+                aria-autocomplete="list"
+                aria-expanded={open && matches.length > 0}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-lg outline-none placeholder:text-zinc-600 focus:border-amber-300"
+              />
+              {open && matches.length > 0 && (
+                <ul
+                  role="listbox"
+                  className="absolute left-0 right-0 z-10 mt-1 max-h-72 overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl"
+                >
+                  {matches.map((m, i) => (
+                    <li
+                      key={`${m.title}-${m.year}`}
+                      role="option"
+                      aria-selected={i === highlight}
+                      onMouseEnter={() => setHighlight(i)}
+                      onMouseDown={(e) => {
+                        // prevent input blur from closing the dropdown before submit fires
+                        e.preventDefault();
+                        setOpen(false);
+                        setHighlight(-1);
+                        void sendGuess(m.title);
+                      }}
+                      className={`flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2 text-sm ${
+                        i === highlight
+                          ? "bg-amber-300/15 text-amber-100"
+                          : "text-zinc-200 hover:bg-zinc-800"
+                      }`}
+                    >
+                      <span className="truncate">{m.title}</span>
+                      <span className="shrink-0 text-xs text-zinc-500">{m.year}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <div className="flex gap-3">
               <button
                 type="submit"
