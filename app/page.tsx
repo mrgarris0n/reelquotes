@@ -47,9 +47,13 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
-function QuoteBlock({ quote }: { quote: Quote }) {
+function QuoteBlock({ quote, scrollable = false }: { quote: Quote; scrollable?: boolean }) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 font-mono text-base leading-relaxed shadow-inner">
+    <div
+      className={`rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 font-mono text-base leading-relaxed shadow-inner ${
+        scrollable ? "max-h-[50vh] overflow-y-auto" : ""
+      }`}
+    >
       {quote.lines.map((line, i) => (
         <p key={i} className="mb-2 last:mb-0">
           {line.speaker ? (
@@ -276,7 +280,7 @@ export default function Page() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <main className="mx-auto max-w-4xl px-6 py-12">
       <header className="mb-10 space-y-4">
         <Image
           src="/logo.png"
@@ -374,9 +378,12 @@ export default function Page() {
             </div>
           )}
 
-          <QuoteBlock quote={phase.quote} />
+          <QuoteBlock quote={phase.quote} scrollable />
 
-          <form onSubmit={submit} className="space-y-3">
+          <form
+            onSubmit={submit}
+            className="sticky bottom-0 -mx-6 space-y-3 border-t border-zinc-800 bg-[#0b0b0f] px-6 pb-3 pt-4"
+          >
             <div className="relative">
               <input
                 type="text"

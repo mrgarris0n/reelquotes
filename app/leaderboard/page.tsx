@@ -14,7 +14,7 @@ export default async function LeaderboardPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
+    <main className="mx-auto max-w-4xl px-6 py-12">
       <header className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Leaderboard</h1>
         <Link
