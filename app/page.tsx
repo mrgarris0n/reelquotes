@@ -280,7 +280,7 @@ export default function Page() {
       <header className="mb-10 flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <Image
-            src="/logo.png"
+            src="/logo-dark.png"
             alt=""
             width={352}
             height={311}
