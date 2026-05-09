@@ -1,9 +1,8 @@
-import Link from "next/link";
-import { getLeaderboard } from "@/lib/leaderboard";
-import type { Difficulty } from "@/lib/types";
+"use client";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { Difficulty, LeaderboardEntry } from "@/lib/types";
 
 const FILTERS: { id: Difficulty | "all"; label: string }[] = [
   { id: "all", label: "All" },
@@ -12,26 +11,39 @@ const FILTERS: { id: Difficulty | "all"; label: string }[] = [
   { id: "hard", label: "Hard" },
 ];
 
-const VALID: Difficulty[] = ["easy", "normal", "hard"];
+export default function LeaderboardPage() {
+  const [active, setActive] = useState<Difficulty | "all">("all");
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function LeaderboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ difficulty?: string }>;
-}) {
-  const sp = await searchParams;
-  const raw = sp.difficulty;
-  const active: Difficulty | undefined = VALID.includes(raw as Difficulty)
-    ? (raw as Difficulty)
-    : undefined;
-
-  let entries: Awaited<ReturnType<typeof getLeaderboard>> = [];
-  let error: string | null = null;
-  try {
-    entries = await getLeaderboard(active);
-  } catch (err) {
-    error = (err as Error).message;
-  }
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    const url =
+      active === "all" ? "/api/leaderboard" : `/api/leaderboard?difficulty=${active}`;
+    fetch(url, { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) {
+          setError(data.error ?? "Failed to load leaderboard");
+          setEntries([]);
+        } else {
+          setEntries(data.entries ?? []);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError((err as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [active]);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -47,12 +59,12 @@ export default async function LeaderboardPage({
 
       <div className="mb-6 flex flex-wrap gap-2">
         {FILTERS.map((f) => {
-          const isActive = (f.id === "all" && !active) || f.id === active;
-          const href = f.id === "all" ? "/leaderboard" : `/leaderboard?difficulty=${f.id}`;
+          const isActive = f.id === active;
           return (
-            <Link
+            <button
               key={f.id}
-              href={href}
+              type="button"
+              onClick={() => setActive(f.id)}
               className={`rounded-full border px-4 py-1.5 text-sm transition ${
                 isActive
                   ? "border-amber-300 bg-amber-300/10 text-amber-200"
@@ -60,7 +72,7 @@ export default async function LeaderboardPage({
               }`}
             >
               {f.label}
-            </Link>
+            </button>
           );
         })}
       </div>
@@ -71,14 +83,18 @@ export default async function LeaderboardPage({
         </div>
       )}
 
-      {!error && entries.length === 0 && (
+      {!error && loading && (
+        <p className="text-sm text-zinc-500">Loading…</p>
+      )}
+
+      {!error && !loading && entries.length === 0 && (
         <p className="text-zinc-400">
           No entries yet
-          {active ? ` for ${active} mode` : ""} — be the first to make the board.
+          {active !== "all" ? ` for ${active} mode` : ""} — be the first to make the board.
         </p>
       )}
 
-      {entries.length > 0 && (
+      {!loading && entries.length > 0 && (
         <ol className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
           {entries.map((e, i) => (
             <li
@@ -98,7 +114,7 @@ export default async function LeaderboardPage({
                   {i + 1}
                 </span>
                 <span className="font-semibold text-zinc-100">{e.name}</span>
-                {!active && (
+                {active === "all" && (
                   <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs uppercase tracking-wider text-zinc-400">
                     {e.difficulty}
                   </span>
