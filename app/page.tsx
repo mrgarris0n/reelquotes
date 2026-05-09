@@ -238,21 +238,23 @@ export default function Page() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
-      <header className="mb-10 flex items-center justify-between gap-4">
+      <header className="mb-10 space-y-4">
         <Image
           src="/logo.png"
           alt="ReelQuotes — Movie Quote Trivia"
           width={1408}
           height={768}
           priority
-          className="h-auto w-48 rounded-md shadow-lg sm:w-56"
+          className="h-auto w-full rounded-md shadow-lg"
         />
         {phase.kind !== "setup" && (
-          <div className="shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right">
-            <div className="text-xs uppercase tracking-wider text-zinc-500">Score</div>
-            <div className="text-2xl font-bold tabular-nums text-amber-300">{score}</div>
-            <div className="text-xs text-zinc-500">
-              {roundsWon} round{roundsWon === 1 ? "" : "s"}
+          <div className="flex justify-end">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right">
+              <div className="text-xs uppercase tracking-wider text-zinc-500">Score</div>
+              <div className="text-2xl font-bold tabular-nums text-amber-300">{score}</div>
+              <div className="text-xs text-zinc-500">
+                {roundsWon} round{roundsWon === 1 ? "" : "s"}
+              </div>
             </div>
           </div>
         )}
