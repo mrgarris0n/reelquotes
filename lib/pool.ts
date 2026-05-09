@@ -1,20 +1,17 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { Filters, Movie, PopularityTier } from "./types";
 
 const DEFAULT_TIERS: PopularityTier[] = ["iconic", "popular"];
+const MOVIES_PATH = path.join(process.cwd(), "data", "movies.json");
 
 let cached: Movie[] | null = null;
 
 function loadPool(): Movie[] {
   if (cached) return cached;
-  const generated = path.join(process.cwd(), "data", "movies.json");
-  const seed = path.join(process.cwd(), "data", "movies.seed.json");
-  const filePath = existsSync(generated) ? generated : seed;
-  const raw = readFileSync(filePath, "utf8");
-  const parsed = JSON.parse(raw) as Movie[];
-  cached = parsed;
-  return parsed;
+  const raw = readFileSync(MOVIES_PATH, "utf8");
+  cached = JSON.parse(raw) as Movie[];
+  return cached;
 }
 
 export function poolSize(): number {

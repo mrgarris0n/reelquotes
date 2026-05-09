@@ -1,10 +1,10 @@
 # ReelQuotes
 
-A small web game: a quote from a random movie is shown; you guess the title. Leave the field blank to skip and see another quote from the same movie. Five quotes max — wrong guess at any point or skipping past the fifth is a fail.
+A small web game: a quote from a random movie is shown; you guess the title. Leave the field blank to skip and see another quote from the same movie. Five quotes max — wrong guess at any point counts like a skip; running out of quotes for a movie ends the game.
 
 ## Stack
 
-Next.js 15 (App Router) · TypeScript · Tailwind · cheerio for IMDb scraping · fastest-levenshtein for fuzzy title matching.
+Next.js 15 (App Router) · TypeScript · Tailwind · fastest-levenshtein for fuzzy title matching · stateless rounds via AES-256-GCM tokens.
 
 ## Quickstart
 
@@ -15,23 +15,35 @@ npm run dev
 
 Open http://localhost:3000.
 
-The app ships with a small seed catalog (`data/movies.seed.json`, ~50 well-known films). To use a wider pool (~10k movies), build it once:
+The repo ships with a pre-built quote database (`data/movies.json` + `data/quotes.json`) covering the iconic and popular tiers, so the app works immediately with no scraping at runtime.
+
+## Refreshing the database
+
+To pull fresh data from IMDb (run locally, then commit and deploy):
 
 ```bash
-npm run build:pool
+npm run refresh   # = build:pool + build:quotes
 ```
 
-That downloads two TSVs from <https://datasets.imdbws.com/> (a few hundred MB each) and writes `data/movies.json`, which the app prefers when present.
+- `build:pool` downloads IMDb's TSV dumps from <https://datasets.imdbws.com/> and writes the raw movies pool to `data/movies.json`.
+- `build:quotes` reads that pool, fetches quotes from IMDb's GraphQL endpoint for the iconic + popular tiers, drops movies with fewer than 5 usable quotes, caps each remaining movie at 20 quotes, and overwrites `data/movies.json` to contain only movies that have quotes plus writes `data/quotes.json` keyed by IMDb id.
 
-## How it works
+The scrape is resumable — re-running it skips movies already in `data/quotes.json`. Expect ~25 minutes for a full run at concurrency 4.
 
-1. `/api/round/start` picks a random movie matching your filters, scrapes 5 quotes from `imdb.com/title/{id}/quotes`, caches them on disk, and creates a server-side round.
-2. `/api/round/[id]/guess` fuzzy-matches your guess against the canonical title (and a couple of variants).
-3. `/api/round/[id]/skip` advances to the next quote, or fails the round if you've used all five.
+After refreshing, commit `data/movies.json` and `data/quotes.json` and push.
 
-The server never sends the answer to the client until the round ends.
+## Architecture
+
+- `lib/pool.ts` — loads `data/movies.json`, picks a random movie matching the user's decade/tier filters.
+- `lib/scraper.ts` — loads `data/quotes.json`, picks 5 random quotes for a movie, anonymizes character names. No network calls at runtime.
+- `lib/token.ts` — encodes round state into an AES-256-GCM token; the client carries it across `/start` → `/guess` / `/skip` so no server-side state is needed.
+- `lib/matcher.ts` — Levenshtein-based fuzzy title matching with normalization (article-stripping, subtitle-stripping, diacritic-stripping).
+
+## Deployment
+
+Set `REELQUOTES_SECRET` (≥16 chars, ideally 32+ random hex bytes) in your Vercel project env vars so round tokens stay valid across Lambda instances.
 
 ## Caveats
 
-- IMDb has no public quotes API; this app scrapes their HTML, which is technically against their ToS and can break when they change their markup. Quotes are cached aggressively so the same movie isn't refetched.
-- The catalog is filtered to titles with ≥5,000 IMDb votes, which still includes plenty of obscure films — narrow with the difficulty / era chips.
+- IMDb has no public quotes API. Pre-scraping happens locally and is committed to the repo, so the deployed app makes zero IMDb calls at runtime.
+- The bundled DB only covers iconic + popular tiers (≥100k IMDb votes). Picking "known" or "niche" filters with no other tiers selected will return an error until you broaden the scope of the build script.

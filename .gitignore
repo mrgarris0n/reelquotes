@@ -7,11 +7,9 @@ dist
 *.tsbuildinfo
 next-env.d.ts
 
-# generated quote cache
+# local IMDb TSV download cache (re-downloaded by build:pool)
 .cache/
 
-# generated movie pool (regenerate with `npm run build:pool`)
-data/movies.json
-!data/movies.seed.json
 .env
 .mcp.json
+.claude/

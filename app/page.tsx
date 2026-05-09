@@ -1,15 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Decade, Filters, PopularityTier, Quote } from "@/lib/types";
+import type { Decade, Filters, Quote } from "@/lib/types";
 
 const DECADES: Decade[] = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
-const TIERS: { id: PopularityTier; label: string; hint: string }[] = [
-  { id: "iconic", label: "Iconic", hint: "500k+ votes" },
-  { id: "popular", label: "Popular", hint: "100k+ votes" },
-  { id: "known", label: "Known", hint: "25k+ votes" },
-  { id: "niche", label: "Niche", hint: "5k+ votes" },
-];
 
 const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
 
@@ -68,7 +62,6 @@ function QuoteBlock({ quote }: { quote: Quote }) {
 export default function Page() {
   const [phase, setPhase] = useState<Phase>({ kind: "setup" });
   const [decades, setDecades] = useState<Decade[]>([]);
-  const [tiers, setTiers] = useState<PopularityTier[]>(["iconic", "popular"]);
   const [guess, setGuess] = useState("");
   const [score, setScore] = useState(0);
   const [roundsWon, setRoundsWon] = useState(0);
@@ -76,7 +69,6 @@ export default function Page() {
   function currentFilters(): Filters {
     const f: Filters = {};
     if (decades.length) f.decades = decades;
-    if (tiers.length) f.tiers = tiers;
     return f;
   }
 
@@ -255,29 +247,6 @@ export default function Page() {
             </div>
             <p className="mt-2 text-xs text-zinc-500">
               {decades.length === 0 ? "Any era" : decades.join(", ")}
-            </p>
-          </div>
-
-          <div>
-            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Difficulty</h2>
-            <div className="flex flex-wrap gap-2">
-              {TIERS.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTiers(toggle(tiers, t.id))}
-                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                    tiers.includes(t.id)
-                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
-                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
-                  }`}
-                  title={t.hint}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              {tiers.length === 0 ? "Defaulting to iconic + popular" : tiers.join(", ")}
             </p>
           </div>
 
