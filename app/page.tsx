@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import type { Decade, Filters, Quote } from "@/lib/types";
 
 const DECADES: Decade[] = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
@@ -200,13 +201,15 @@ export default function Page() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
-      <header className="mb-10 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">ReelQuotes</h1>
-          <p className="mt-2 text-zinc-400">
-            Guess the movie from its quotes. Skip with an empty guess. Five quotes max per round.
-          </p>
-        </div>
+      <header className="mb-10 flex items-center justify-between gap-4">
+        <Image
+          src="/logo.png"
+          alt="ReelQuotes — Movie Quote Trivia"
+          width={1408}
+          height={768}
+          priority
+          className="h-auto w-48 rounded-md shadow-lg sm:w-56"
+        />
         {phase.kind !== "setup" && (
           <div className="shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right">
             <div className="text-xs uppercase tracking-wider text-zinc-500">Score</div>
