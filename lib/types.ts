@@ -45,3 +45,19 @@ export interface RoundState {
   status: RoundStatus;
   startedAt: number;
 }
+
+export interface ScoreState {
+  id: string;
+  score: number;
+  roundsWon: number;
+  startedAt: number;
+  lastUpdatedAt: number;
+}
+
+export interface LeaderboardEntry {
+  name: string;
+  score: number;
+  roundsWon: number;
+  sessionId: string;
+  submittedAt: number;
+}

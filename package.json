@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vercel/blob": "^2.3.3",
     "fastest-levenshtein": "^1.0.16",
     "next": "^15.0.0",
     "react": "^19.0.0",

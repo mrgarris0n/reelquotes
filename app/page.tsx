@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { Decade, Filters, Quote } from "@/lib/types";
 
 interface TitleEntry {
@@ -71,9 +72,17 @@ export default function Page() {
   const [guess, setGuess] = useState("");
   const [score, setScore] = useState(0);
   const [roundsWon, setRoundsWon] = useState(0);
+  const [scoreToken, setScoreToken] = useState<string | null>(null);
   const [titles, setTitles] = useState<TitleEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
+  const [submitName, setSubmitName] = useState("");
+  const [submitState, setSubmitState] = useState<
+    | { kind: "idle" }
+    | { kind: "submitting" }
+    | { kind: "submitted"; rank: number | null }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
 
   useEffect(() => {
     fetch("/api/titles")
@@ -138,6 +147,9 @@ export default function Page() {
   function startGame() {
     setScore(0);
     setRoundsWon(0);
+    setScoreToken(null);
+    setSubmitName("");
+    setSubmitState({ kind: "idle" });
     void startRound();
   }
 
@@ -155,11 +167,10 @@ export default function Page() {
 
   async function sendGuess(g: string) {
     if (phase.kind !== "playing") return;
-    const indexAtGuess = phase.index;
     const res = await fetch("/api/round/guess", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: phase.token, guess: g }),
+      body: JSON.stringify({ token: phase.token, scoreToken, guess: g }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -167,12 +178,13 @@ export default function Page() {
       return;
     }
     if (data.correct) {
-      const points = POINTS_PER_QUOTE[indexAtGuess] ?? 0;
-      setScore((s) => s + points);
-      setRoundsWon((r) => r + 1);
+      // Server is the source of truth for cumulative score (score token is signed).
+      setScore(data.score);
+      setRoundsWon(data.roundsWon);
+      if (data.scoreToken) setScoreToken(data.scoreToken);
       setPhase({
         kind: "roundWon",
-        points,
+        points: data.points ?? 0,
         title: data.title,
         year: data.year,
         imdbId: data.imdbId,
@@ -233,6 +245,33 @@ export default function Page() {
         total: data.total,
       });
       clearGuess();
+    }
+  }
+
+  async function submitToLeaderboard(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitState.kind === "submitting" || submitState.kind === "submitted") return;
+    if (!scoreToken) return;
+    const cleaned = submitName.replace(/[^A-Za-z0-9]/g, "").slice(0, 10);
+    if (!cleaned) {
+      setSubmitState({ kind: "error", message: "Use 1–10 letters or digits." });
+      return;
+    }
+    setSubmitState({ kind: "submitting" });
+    try {
+      const res = await fetch("/api/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: cleaned, scoreToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitState({ kind: "error", message: data.error ?? "Submission failed" });
+        return;
+      }
+      setSubmitState({ kind: "submitted", rank: data.rank ?? null });
+    } catch (err) {
+      setSubmitState({ kind: "error", message: (err as Error).message });
     }
   }
 
@@ -298,6 +337,13 @@ export default function Page() {
           >
             Start game
           </button>
+
+          <Link
+            href="/leaderboard"
+            className="block w-full rounded-lg border border-zinc-700 px-6 py-3 text-center text-sm text-zinc-200 transition hover:border-zinc-500"
+          >
+            View leaderboard →
+          </Link>
         </section>
       )}
 
@@ -487,12 +533,76 @@ export default function Page() {
             ))}
           </div>
 
-          <button
-            onClick={() => setPhase({ kind: "setup" })}
-            className="w-full rounded-lg bg-amber-300 px-6 py-3 font-semibold text-zinc-900 transition hover:bg-amber-200"
-          >
-            Play again
-          </button>
+          {score > 0 && scoreToken && submitState.kind !== "submitted" && (
+            <form
+              onSubmit={submitToLeaderboard}
+              className="space-y-3 rounded-xl border border-amber-300/40 bg-amber-300/5 p-5"
+            >
+              <div>
+                <p className="text-sm font-semibold text-amber-200">
+                  Score {score} — make the leaderboard?
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Up to 10 letters or digits. No spaces or special characters.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={submitName}
+                  onChange={(e) =>
+                    setSubmitName(e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 10))
+                  }
+                  maxLength={10}
+                  pattern="[A-Za-z0-9]+"
+                  placeholder="Your name"
+                  disabled={submitState.kind === "submitting"}
+                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base outline-none placeholder:text-zinc-600 focus:border-amber-300"
+                />
+                <button
+                  type="submit"
+                  disabled={!submitName.trim() || submitState.kind === "submitting"}
+                  className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+                >
+                  {submitState.kind === "submitting" ? "Submitting…" : "Submit"}
+                </button>
+              </div>
+              {submitState.kind === "error" && (
+                <p className="text-xs text-rose-300">{submitState.message}</p>
+              )}
+            </form>
+          )}
+
+          {submitState.kind === "submitted" && (
+            <div className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 p-5 text-sm">
+              <p className="font-semibold text-emerald-200">
+                {submitState.rank
+                  ? `Submitted — you're #${submitState.rank} on the leaderboard.`
+                  : "Submitted — but didn't crack the top 20 this time."}
+              </p>
+              <Link
+                href="/leaderboard"
+                className="mt-2 inline-block text-amber-300 underline-offset-2 hover:underline"
+              >
+                View leaderboard →
+              </Link>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setPhase({ kind: "setup" })}
+              className="flex-1 rounded-lg bg-amber-300 px-6 py-3 font-semibold text-zinc-900 transition hover:bg-amber-200"
+            >
+              Play again
+            </button>
+            <Link
+              href="/leaderboard"
+              className="flex-1 rounded-lg border border-zinc-700 px-6 py-3 text-center text-zinc-200 transition hover:border-zinc-500"
+            >
+              Leaderboard
+            </Link>
+          </div>
         </section>
       )}
 

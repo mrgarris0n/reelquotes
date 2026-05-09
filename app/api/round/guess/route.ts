@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import { decodeRound, encodeRound } from "@/lib/token";
+import { decodeRound, decodeScore, encodeRound, encodeScore } from "@/lib/token";
 import { matches } from "@/lib/matcher";
+import type { ScoreState } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
+
 export async function POST(req: Request) {
-  let body: { token?: string; guess?: string } = {};
+  let body: { token?: string; scoreToken?: string; guess?: string } = {};
   try {
     body = await req.json();
   } catch {
     /* empty */
   }
-  const token = body.token ?? "";
-  const round = decodeRound(token);
+  const round = decodeRound(body.token ?? "");
   if (!round) return NextResponse.json({ error: "Invalid round token" }, { status: 400 });
   if (round.status !== "active") {
     return NextResponse.json({ error: "Round already finished" }, { status: 410 });
@@ -25,12 +27,34 @@ export async function POST(req: Request) {
 
   if (matches(guess, round.acceptableTitles)) {
     round.status = "won";
+    const points = POINTS_PER_QUOTE[round.index] ?? 0;
+
+    // Update or initialize the cumulative score token. If a token was passed
+    // in, we trust its (signed) score; otherwise we start a new session.
+    let session: ScoreState | null = body.scoreToken ? decodeScore(body.scoreToken) : null;
+    if (!session) {
+      session = {
+        id: crypto.randomUUID(),
+        score: 0,
+        roundsWon: 0,
+        startedAt: Date.now(),
+        lastUpdatedAt: Date.now(),
+      };
+    }
+    session.score += points;
+    session.roundsWon += 1;
+    session.lastUpdatedAt = Date.now();
+
     return NextResponse.json({
       correct: true,
       title: round.title,
       year: round.year,
       imdbId: round.imdbId,
       quotesShown: round.quotes.slice(0, round.index + 1),
+      points,
+      scoreToken: encodeScore(session),
+      score: session.score,
+      roundsWon: session.roundsWon,
     });
   }
 

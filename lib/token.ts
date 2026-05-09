@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from "node:crypto";
-import type { RoundState } from "./types";
+import type { RoundState, ScoreState } from "./types";
 
 const ALGO = "aes-256-gcm";
 const IV_LEN = 12;
@@ -15,22 +15,22 @@ function loadKey(): Buffer {
     g.__reelquotesKey = randomBytes(32);
     if (process.env.NODE_ENV === "production") {
       console.warn(
-        "REELQUOTES_SECRET is not set — using a per-process key. Rounds may break across Lambda instances. Set REELQUOTES_SECRET in your Vercel project env vars (>=16 chars).",
+        "REELQUOTES_SECRET is not set — using a per-process key. Tokens may break across Lambda instances. Set REELQUOTES_SECRET in your Vercel project env vars (>=16 chars).",
       );
     }
   }
   return g.__reelquotesKey;
 }
 
-export function encodeRound(state: RoundState): string {
+function encrypt<T>(data: T): string {
   const iv = randomBytes(IV_LEN);
   const cipher = createCipheriv(ALGO, loadKey(), iv);
-  const enc = Buffer.concat([cipher.update(JSON.stringify(state), "utf8"), cipher.final()]);
+  const enc = Buffer.concat([cipher.update(JSON.stringify(data), "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return Buffer.concat([iv, tag, enc]).toString("base64url");
 }
 
-export function decodeRound(token: string): RoundState | null {
+function decrypt<T>(token: string): T | null {
   try {
     const buf = Buffer.from(token, "base64url");
     if (buf.length < IV_LEN + TAG_LEN + 1) return null;
@@ -40,8 +40,14 @@ export function decodeRound(token: string): RoundState | null {
     const dec = createDecipheriv(ALGO, loadKey(), iv);
     dec.setAuthTag(tag);
     const out = Buffer.concat([dec.update(enc), dec.final()]).toString("utf8");
-    return JSON.parse(out) as RoundState;
+    return JSON.parse(out) as T;
   } catch {
     return null;
   }
 }
+
+export const encodeRound = (s: RoundState): string => encrypt(s);
+export const decodeRound = (t: string): RoundState | null => decrypt<RoundState>(t);
+
+export const encodeScore = (s: ScoreState): string => encrypt(s);
+export const decodeScore = (t: string): ScoreState | null => decrypt<ScoreState>(t);
