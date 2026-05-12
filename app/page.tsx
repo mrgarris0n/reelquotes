@@ -288,25 +288,25 @@ export default function Page() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
-      <header className="mb-10 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
           <Image
             src="/logo-dark.png"
             alt=""
             width={352}
             height={311}
             priority
-            className="h-16 w-auto sm:h-20"
+            className="h-14 w-auto shrink-0 sm:h-20"
           />
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">ReelQuotes</h1>
-            <p className="mt-2 text-zinc-400">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">ReelQuotes</h1>
+            <p className="mt-1 text-sm text-zinc-400 sm:mt-2 sm:text-base">
               Guess the movie from its quotes. Skip with an empty guess. Five quotes max per round.
             </p>
           </div>
         </div>
         {phase.kind !== "setup" && (
-          <div className="shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right">
+          <div className="self-start rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right sm:shrink-0">
             <div className="text-xs uppercase tracking-wider text-zinc-500">Score</div>
             <div className="text-2xl font-bold tabular-nums text-amber-300">{score}</div>
             <div className="text-xs text-zinc-500">
@@ -451,10 +451,10 @@ export default function Page() {
                 }}
                 autoFocus
                 autoComplete="off"
-                placeholder="Type the movie title — or leave blank to skip"
+                placeholder="Movie title — or blank to skip"
                 aria-autocomplete="list"
                 aria-expanded={open && matches.length > 0}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-lg outline-none placeholder:text-zinc-600 focus:border-amber-300"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-base outline-none placeholder:text-zinc-600 focus:border-amber-300 sm:text-lg"
               />
               {open && matches.length > 0 && (
                 <ul
