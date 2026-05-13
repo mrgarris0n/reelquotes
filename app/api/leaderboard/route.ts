@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkBotId } from "botid/server";
 import { decodeScore } from "@/lib/token";
 import { getLeaderboard, sanitizeName, submitEntry, NAME_MAX_LEN } from "@/lib/leaderboard";
 import type { Difficulty, LeaderboardEntry } from "@/lib/types";
@@ -22,6 +23,11 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const verification = await checkBotId();
+  if (verification.isBot) {
+    return NextResponse.json({ error: "Bot detected" }, { status: 403 });
+  }
+
   let body: { name?: string; scoreToken?: string } = {};
   try {
     body = await req.json();

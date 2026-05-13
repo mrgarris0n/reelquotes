@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withBotId } from "botid/next/config";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -6,7 +7,8 @@ const nextConfig: NextConfig = {
   // automatically, so include it explicitly in the API routes' bundle.
   outputFileTracingIncludes: {
     "/api/round/**": ["./data/**/*"],
+    "/api/daily/**": ["./data/**/*"],
   },
 };
 
-export default nextConfig;
+export default withBotId(nextConfig);
