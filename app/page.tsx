@@ -279,13 +279,17 @@ export default function Page() {
       return;
     }
     // Wrong guess but more quotes remain — advance like a skip.
+    // Preserve hint-revealed data (title mask, genres, purchased year) across
+    // quote advances so the player keeps what they paid for.
     setPhase({
       kind: "playing",
       token: data.token,
       quote: data.quote,
       index: data.index,
       total: data.total,
-      year: data.year,
+      year: data.year ?? phase.year,
+      genres: phase.genres,
+      titleMask: phase.titleMask,
       hintsUsed: phase.hintsUsed,
       lastWrongGuess: g,
     });
@@ -325,7 +329,9 @@ export default function Page() {
         quote: data.quote,
         index: data.index,
         total: data.total,
-        year: data.year,
+        year: data.year ?? phase.year,
+        genres: phase.genres,
+        titleMask: phase.titleMask,
         hintsUsed: hintsAtSkip,
       });
       clearGuess();
