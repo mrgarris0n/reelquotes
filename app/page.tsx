@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import pkg from "../package.json";
 import { ALL_GENRES, type Decade, type Difficulty, type Filters, type Genre, type Quote } from "@/lib/types";
+
+const APP_VERSION = pkg.version;
+const COMMIT_SHA = process.env.COMMIT_SHA ?? "";
+const COMMIT_SHA_SHORT = COMMIT_SHA ? COMMIT_SHA.slice(0, 7) : "";
+const GITHUB_REPO_URL = "https://github.com/mrgarris0n/reelquotes";
 
 interface TitleEntry {
   title: string;
@@ -953,15 +959,33 @@ export default function Page() {
       )}
 
       <footer className="mt-16 border-t border-zinc-800 pt-6 text-center text-xs text-zinc-500">
-        Created by{" "}
-        <a
-          href="https://github.com/mrgarris0n"
-          target="_blank"
-          rel="noreferrer"
-          className="text-zinc-300 underline-offset-2 hover:text-amber-300 hover:underline"
-        >
-          mrgarris0n
-        </a>
+        <p>
+          Created by{" "}
+          <a
+            href="https://github.com/mrgarris0n"
+            target="_blank"
+            rel="noreferrer"
+            className="text-zinc-300 underline-offset-2 hover:text-amber-300 hover:underline"
+          >
+            mrgarris0n
+          </a>
+        </p>
+        <p className="mt-1 font-mono text-[10px] text-zinc-600">
+          v{APP_VERSION}
+          {COMMIT_SHA_SHORT && (
+            <>
+              {" · "}
+              <a
+                href={`${GITHUB_REPO_URL}/commit/${COMMIT_SHA}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-amber-300"
+              >
+                {COMMIT_SHA_SHORT}
+              </a>
+            </>
+          )}
+        </p>
       </footer>
     </main>
   );
