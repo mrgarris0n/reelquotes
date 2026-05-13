@@ -10,12 +10,48 @@ export type Decade =
   | "2010s"
   | "2020s";
 
+export type Genre =
+  | "Action"
+  | "Adventure"
+  | "Animation"
+  | "Comedy"
+  | "Crime"
+  | "Drama"
+  | "Family"
+  | "Fantasy"
+  | "Horror"
+  | "Mystery"
+  | "Romance"
+  | "Sci-Fi"
+  | "Thriller"
+  | "War"
+  | "Western";
+
+export const ALL_GENRES: Genre[] = [
+  "Action",
+  "Adventure",
+  "Animation",
+  "Comedy",
+  "Crime",
+  "Drama",
+  "Family",
+  "Fantasy",
+  "Horror",
+  "Mystery",
+  "Romance",
+  "Sci-Fi",
+  "Thriller",
+  "War",
+  "Western",
+];
+
 export interface Movie {
   id: string;
   title: string;
   year: number;
   decade: Decade;
   tier: PopularityTier;
+  genres: Genre[];
 }
 
 export interface QuoteLine {
@@ -30,6 +66,7 @@ export interface Quote {
 export interface Filters {
   decades?: Decade[];
   tiers?: PopularityTier[];
+  genres?: Genre[];
 }
 
 export type RoundStatus = "active" | "won" | "lost";

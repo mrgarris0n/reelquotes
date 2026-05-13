@@ -26,10 +26,15 @@ export function pickRandom(filters: Filters = {}): Movie {
   const all = loadPool();
   const tiers = filters.tiers && filters.tiers.length > 0 ? filters.tiers : DEFAULT_TIERS;
   const decades = filters.decades && filters.decades.length > 0 ? filters.decades : null;
+  const genres = filters.genres && filters.genres.length > 0 ? filters.genres : null;
 
   const filtered = all.filter((m) => {
     if (!tiers.includes(m.tier)) return false;
     if (decades && !decades.includes(m.decade)) return false;
+    if (genres) {
+      const movieGenres = m.genres ?? [];
+      if (!genres.some((g) => movieGenres.includes(g))) return false;
+    }
     return true;
   });
 
@@ -37,4 +42,8 @@ export function pickRandom(filters: Filters = {}): Movie {
     throw new Error("No movies match the chosen filters");
   }
   return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
+export function findById(imdbId: string): Movie | undefined {
+  return loadPool().find((m) => m.id === imdbId);
 }

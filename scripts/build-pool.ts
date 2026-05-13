@@ -13,7 +13,9 @@ import { pipeline } from "node:stream/promises";
 import { createGunzip } from "node:zlib";
 import readline from "node:readline";
 import path from "node:path";
-import type { Decade, Movie, PopularityTier } from "../lib/types";
+import { ALL_GENRES, type Decade, type Genre, type Movie, type PopularityTier } from "../lib/types";
+
+const KNOWN_GENRES = new Set<string>(ALL_GENRES);
 
 const TMP = path.join(process.cwd(), ".cache", "imdb-tsv");
 const OUT = path.join(process.cwd(), "data", "movies.json");
@@ -86,7 +88,12 @@ async function main(): Promise<void> {
   console.log(`Filtering basics (${ratings.size} candidate ids)...`);
   const movies: Movie[] = [];
   for await (const cols of tsvLines(basicsGz)) {
-    const [tconst, titleType, primaryTitle, , isAdult, startYear] = cols;
+    const tconst = cols[0];
+    const titleType = cols[1];
+    const primaryTitle = cols[2];
+    const isAdult = cols[4];
+    const startYear = cols[5];
+    const genresRaw = cols[8]; // title.basics col index 8
     if (titleType !== "movie") continue;
     if (isAdult === "1") continue;
     const votes = ratings.get(tconst);
@@ -97,7 +104,11 @@ async function main(): Promise<void> {
     if (!decade) continue;
     const tier = tierFor(votes);
     if (!tier) continue;
-    movies.push({ id: tconst, title: primaryTitle, year, decade, tier });
+    const genres: Genre[] =
+      genresRaw && genresRaw !== "\\N"
+        ? (genresRaw.split(",").filter((g) => KNOWN_GENRES.has(g)) as Genre[])
+        : [];
+    movies.push({ id: tconst, title: primaryTitle, year, decade, tier, genres });
   }
 
   movies.sort((a, b) => (ratings.get(b.id) ?? 0) - (ratings.get(a.id) ?? 0));

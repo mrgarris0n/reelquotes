@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Decade, Difficulty, Filters, Quote } from "@/lib/types";
+import { ALL_GENRES, type Decade, type Difficulty, type Filters, type Genre, type Quote } from "@/lib/types";
 
 interface TitleEntry {
   title: string;
@@ -11,6 +11,7 @@ interface TitleEntry {
 }
 
 const DECADES: Decade[] = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
+const GENRES: Genre[] = ALL_GENRES;
 
 const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
   { id: "easy", label: "Easy", hint: "Real character names · year shown" },
@@ -76,6 +77,7 @@ function QuoteBlock({ quote }: { quote: Quote }) {
 export default function Page() {
   const [phase, setPhase] = useState<Phase>({ kind: "setup" });
   const [decades, setDecades] = useState<Decade[]>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
   const [guess, setGuess] = useState("");
   const [score, setScore] = useState(0);
@@ -123,6 +125,7 @@ export default function Page() {
   function currentFilters(): Filters {
     const f: Filters = {};
     if (decades.length) f.decades = decades;
+    if (genres.length) f.genres = genres;
     return f;
   }
 
@@ -345,6 +348,28 @@ export default function Page() {
             </div>
             <p className="mt-2 text-xs text-zinc-500">
               {decades.length === 0 ? "Any era" : decades.join(", ")}
+            </p>
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Genre</h2>
+            <div className="flex flex-wrap gap-2">
+              {GENRES.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGenres(toggle(genres, g))}
+                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                    genres.includes(g)
+                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
+                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              {genres.length === 0 ? "Any genre" : genres.join(", ")}
             </p>
           </div>
 
