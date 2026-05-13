@@ -93,6 +93,7 @@ export default function Page() {
     | { kind: "submitted"; rank: number | null }
     | { kind: "error"; message: string }
   >({ kind: "idle" });
+  const [daily, setDaily] = useState<{ title: string; year: number; quote: Quote } | null>(null);
 
   useEffect(() => {
     fetch("/api/titles")
@@ -100,6 +101,14 @@ export default function Page() {
       .then((d: { titles: TitleEntry[] }) => setTitles(d.titles))
       .catch(() => {
         // Combobox falls back to plain text input if titles fail to load.
+      });
+    fetch("/api/daily")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && d.quote) setDaily({ title: d.title, year: d.year, quote: d.quote });
+      })
+      .catch(() => {
+        // Daily quote is optional flavor; ignore failures.
       });
   }, []);
 
@@ -321,6 +330,35 @@ export default function Page() {
 
       {phase.kind === "setup" && (
         <section className="space-y-8">
+          {daily && (
+            <div className="rounded-xl border border-amber-300/30 bg-amber-300/5 p-5">
+              <p className="text-xs uppercase tracking-wider text-amber-300">Quote of the Day</p>
+              <div className="mt-3 font-mono text-sm leading-relaxed text-zinc-100">
+                {daily.quote.lines.map((line, i) => (
+                  <p key={i} className="mb-1 last:mb-0">
+                    {line.speaker ? (
+                      <>
+                        <span className="text-amber-200">{line.speaker}:</span>{" "}
+                        <span>{line.text}</span>
+                      </>
+                    ) : (
+                      <span>{line.text}</span>
+                    )}
+                  </p>
+                ))}
+              </div>
+              <details className="mt-3 text-xs text-zinc-400">
+                <summary className="cursor-pointer select-none text-zinc-500 hover:text-zinc-300">
+                  Reveal answer
+                </summary>
+                <p className="mt-2 text-zinc-200">
+                  {daily.title}{" "}
+                  <span className="text-zinc-500">({daily.year})</span>
+                </p>
+              </details>
+            </div>
+          )}
+
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 text-sm text-zinc-300">
             <p className="font-semibold text-zinc-100">Scoring</p>
             <p className="mt-1 text-zinc-400">
