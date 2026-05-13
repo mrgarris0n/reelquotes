@@ -108,6 +108,8 @@ export default function Page() {
   const [roundsWon, setRoundsWon] = useState(0);
   const [scoreToken, setScoreToken] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
+  const [canNativeShare, setCanNativeShare] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
   const [titles, setTitles] = useState<TitleEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -119,6 +121,10 @@ export default function Page() {
     | { kind: "error"; message: string }
   >({ kind: "idle" });
   const [daily, setDaily] = useState<{ title: string; year: number; quote: Quote } | null>(null);
+
+  useEffect(() => {
+    setCanNativeShare(typeof navigator !== "undefined" && "share" in navigator);
+  }, []);
 
   useEffect(() => {
     fetch("/api/titles")
@@ -346,8 +352,11 @@ export default function Page() {
       }).share;
       if (typeof maybeShare === "function") {
         await maybeShare.call(nav, { text });
+        // OS handles its own UI; no toast needed.
       } else {
         await nav.clipboard.writeText(text);
+        setShareToast("Copied!");
+        window.setTimeout(() => setShareToast(null), 1800);
       }
     } catch {
       // user dismissed share sheet, or clipboard write was blocked — silent.
@@ -779,12 +788,17 @@ export default function Page() {
                   <span key={i}>{emojiFor(o)}</span>
                 ))}
               </div>
-              <button
-                onClick={() => void shareResults()}
-                className="mt-3 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition hover:border-amber-300 hover:text-amber-200"
-              >
-                Share results
-              </button>
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  onClick={() => void shareResults()}
+                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition hover:border-amber-300 hover:text-amber-200"
+                >
+                  {canNativeShare ? "Share results" : "Copy results"}
+                </button>
+                {shareToast && (
+                  <span className="text-xs text-emerald-300">{shareToast}</span>
+                )}
+              </div>
             </div>
           )}
 
