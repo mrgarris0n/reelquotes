@@ -13,12 +13,20 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const raw = url.searchParams.get("difficulty");
   const difficulty = VALID.includes(raw as Difficulty) ? (raw as Difficulty) : undefined;
+  const noCacheHeaders = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "CDN-Cache-Control": "no-store",
+    "Vercel-CDN-Cache-Control": "no-store",
+  };
   try {
     const entries = await getLeaderboard(difficulty);
-    return NextResponse.json({ entries });
+    return NextResponse.json({ entries }, { headers: noCacheHeaders });
   } catch (err) {
     console.error("Leaderboard read failed:", err);
-    return NextResponse.json({ error: "Failed to read leaderboard" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to read leaderboard" },
+      { status: 500, headers: noCacheHeaders },
+    );
   }
 }
 

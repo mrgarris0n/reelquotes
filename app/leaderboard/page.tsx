@@ -21,8 +21,13 @@ export default function LeaderboardPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    const url =
+    // Cache-bust with a timestamp so every fetch is a fresh URL — bypasses
+    // any CDN edge that might have cached a previous response, regardless of
+    // response Cache-Control headers.
+    const base =
       active === "all" ? "/api/leaderboard" : `/api/leaderboard?difficulty=${active}`;
+    const sep = base.includes("?") ? "&" : "?";
+    const url = `${base}${sep}t=${Date.now()}`;
     fetch(url, { cache: "no-store" })
       .then(async (res) => {
         const data = await res.json();
