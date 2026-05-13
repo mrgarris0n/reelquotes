@@ -54,9 +54,10 @@ export async function POST(req: Request) {
     round.status = "won";
     const qualifiesForStreak = round.index === 0 && hintCount === 0;
     const basePoints = POINTS_PER_QUOTE[round.index] ?? 0;
-    const points = qualifiesForStreak
-      ? 5 + Math.min(STREAK_BONUS_CAP, prevStreak)
-      : Math.max(1, basePoints - hintCount * HINT_COST_PER);
+    const streakBonus = qualifiesForStreak ? Math.min(STREAK_BONUS_CAP, prevStreak) : 0;
+    const hintCost = qualifiesForStreak ? 0 : hintCount * HINT_COST_PER;
+    const rawPoints = basePoints + streakBonus - hintCost;
+    const points = Math.max(1, rawPoints);
 
     session.score += points;
     session.roundsWon += 1;
@@ -71,6 +72,11 @@ export async function POST(req: Request) {
       imdbId: round.imdbId,
       quotesShown: round.quotes.slice(0, round.index + 1),
       points,
+      basePoints,
+      streakBonus,
+      hintCost,
+      hintCount,
+      pointsFloored: rawPoints < 1,
       scoreToken: encodeScore(session),
       score: session.score,
       roundsWon: session.roundsWon,

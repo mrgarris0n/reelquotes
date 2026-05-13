@@ -39,6 +39,11 @@ type Phase =
   | {
       kind: "roundWon";
       points: number;
+      basePoints: number;
+      streakBonus: number;
+      hintCost: number;
+      hintCount: number;
+      pointsFloored: boolean;
       title: string;
       year: number;
       imdbId: string;
@@ -229,6 +234,11 @@ export default function Page() {
       setPhase({
         kind: "roundWon",
         points: data.points ?? 0,
+        basePoints: data.basePoints ?? data.points ?? 0,
+        streakBonus: data.streakBonus ?? 0,
+        hintCost: data.hintCost ?? 0,
+        hintCount: data.hintCount ?? 0,
+        pointsFloored: data.pointsFloored ?? false,
         title: data.title,
         year: data.year,
         imdbId: data.imdbId,
@@ -680,9 +690,7 @@ export default function Page() {
       {phase.kind === "roundWon" && (
         <section className="space-y-6">
           <div className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 p-6">
-            <p className="text-sm uppercase tracking-wider text-emerald-300">
-              Correct · +{phase.points} point{phase.points === 1 ? "" : "s"}
-            </p>
+            <p className="text-sm uppercase tracking-wider text-emerald-300">Correct</p>
             <h2 className="mt-1 text-2xl font-bold">
               {phase.title} <span className="font-normal text-zinc-400">({phase.year})</span>
             </h2>
@@ -694,6 +702,33 @@ export default function Page() {
             >
               View on IMDb →
             </a>
+
+            {(phase.streakBonus > 0 || phase.hintCount > 0) ? (
+              <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-sm">
+                <span className="text-zinc-300">
+                  +{phase.basePoints} base
+                </span>
+                {phase.streakBonus > 0 && (
+                  <span className="text-amber-200">+{phase.streakBonus} streak</span>
+                )}
+                {phase.hintCount > 0 && (
+                  <span className="text-rose-300">
+                    −{phase.hintCost} hint{phase.hintCount === 1 ? "" : "s"}
+                  </span>
+                )}
+                <span className="text-zinc-500">=</span>
+                <span className="text-lg font-bold text-emerald-200">
+                  +{phase.points} pt{phase.points === 1 ? "" : "s"}
+                </span>
+                {phase.pointsFloored && (
+                  <span className="text-xs text-zinc-500">(floored at 1)</span>
+                )}
+              </div>
+            ) : (
+              <p className="mt-4 font-mono text-lg font-bold text-emerald-200">
+                +{phase.points} point{phase.points === 1 ? "" : "s"}
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
