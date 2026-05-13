@@ -31,6 +31,8 @@ type Phase =
       index: number;
       total: number;
       year?: number;
+      genres?: string[];
+      hintsUsed: { year?: true; genre?: true };
       pendingSkip?: boolean;
       lastWrongGuess?: string;
     }
@@ -48,11 +50,28 @@ type Phase =
       year: number;
       imdbId: string;
       quotes: Quote[];
+      outcomes: number[];
     }
   | { kind: "error"; message: string };
 
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
+}
+
+function hintCount(used: { year?: true; genre?: true }): number {
+  return (used.year ? 1 : 0) + (used.genre ? 1 : 0);
+}
+
+const OUTCOME_EMOJI = ["🟩", "🟨", "🟨", "🟧", "🟥"]; // by quote index 0..4
+function emojiFor(outcome: number): string {
+  if (outcome < 0) return "⬛";
+  return OUTCOME_EMOJI[outcome] ?? "⬛";
+}
+
+function buildShareText(outcomes: number[], score: number, roundsWon: number): string {
+  const grid = outcomes.map(emojiFor).join("");
+  const url = typeof window !== "undefined" ? window.location.origin : "https://reelquotes.vercel.app";
+  return `🎬 ReelQuotes · ${score} pts · ${roundsWon} round${roundsWon === 1 ? "" : "s"}\n${grid}\n${url}`;
 }
 
 function QuoteBlock({ quote }: { quote: Quote }) {
@@ -83,6 +102,7 @@ export default function Page() {
   const [score, setScore] = useState(0);
   const [roundsWon, setRoundsWon] = useState(0);
   const [scoreToken, setScoreToken] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
   const [titles, setTitles] = useState<TitleEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -158,6 +178,7 @@ export default function Page() {
         index: data.index,
         total: data.total,
         year: data.year,
+        hintsUsed: {},
       });
       clearGuess();
     } catch (err) {
@@ -168,6 +189,7 @@ export default function Page() {
   function startGame() {
     setScore(0);
     setRoundsWon(0);
+    setStreak(0);
     setScoreToken(null);
     setSubmitName("");
     setSubmitState({ kind: "idle" });
@@ -202,6 +224,7 @@ export default function Page() {
       // Server is the source of truth for cumulative score (score token is signed).
       setScore(data.score);
       setRoundsWon(data.roundsWon);
+      setStreak(data.streak ?? 0);
       if (data.scoreToken) setScoreToken(data.scoreToken);
       setPhase({
         kind: "roundWon",
@@ -214,12 +237,15 @@ export default function Page() {
       return;
     }
     if (data.failed) {
+      if (data.scoreToken) setScoreToken(data.scoreToken);
+      setStreak(0);
       setPhase({
         kind: "gameOver",
         title: data.title,
         year: data.year,
         imdbId: data.imdbId,
         quotes: data.quotesShown ?? [phase.quote],
+        outcomes: data.outcomes ?? [],
       });
       return;
     }
@@ -231,6 +257,7 @@ export default function Page() {
       index: data.index,
       total: data.total,
       year: data.year,
+      hintsUsed: phase.hintsUsed,
       lastWrongGuess: g,
     });
     clearGuess();
@@ -239,11 +266,12 @@ export default function Page() {
   async function skip() {
     if (phase.kind !== "playing") return;
     const tokenAtSkip = phase.token;
+    const hintsAtSkip = phase.hintsUsed;
     setPhase({ ...phase, pendingSkip: true });
     const res = await fetch("/api/round/skip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: tokenAtSkip }),
+      body: JSON.stringify({ token: tokenAtSkip, scoreToken }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -251,12 +279,15 @@ export default function Page() {
       return;
     }
     if (data.failed) {
+      if (data.scoreToken) setScoreToken(data.scoreToken);
+      setStreak(0);
       setPhase({
         kind: "gameOver",
         title: data.title,
         year: data.year,
         imdbId: data.imdbId,
         quotes: data.quotesShown,
+        outcomes: data.outcomes ?? [],
       });
     } else {
       setPhase({
@@ -266,8 +297,50 @@ export default function Page() {
         index: data.index,
         total: data.total,
         year: data.year,
+        hintsUsed: hintsAtSkip,
       });
       clearGuess();
+    }
+  }
+
+  async function buyHint(kind: "year" | "genre") {
+    if (phase.kind !== "playing") return;
+    if (phase.hintsUsed[kind]) return;
+    const res = await fetch("/api/round/hint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: phase.token, hint: kind }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setPhase({ kind: "error", message: data.error ?? "Hint failed" });
+      return;
+    }
+    setPhase({
+      ...phase,
+      token: data.token,
+      year: data.year ?? phase.year,
+      genres: data.genres ?? phase.genres,
+      hintsUsed: { ...phase.hintsUsed, [kind]: true },
+    });
+  }
+
+  async function shareResults() {
+    if (phase.kind !== "gameOver") return;
+    const text = buildShareText(phase.outcomes, score, roundsWon);
+    const nav = typeof navigator !== "undefined" ? navigator : null;
+    if (!nav) return;
+    try {
+      const maybeShare = (nav as Navigator & {
+        share?: (d: { text: string }) => Promise<void>;
+      }).share;
+      if (typeof maybeShare === "function") {
+        await maybeShare.call(nav, { text });
+      } else {
+        await nav.clipboard.writeText(text);
+      }
+    } catch {
+      // user dismissed share sheet, or clipboard write was blocked — silent.
     }
   }
 
@@ -323,6 +396,7 @@ export default function Page() {
             <div className="text-2xl font-bold tabular-nums text-amber-300">{score}</div>
             <div className="text-xs text-zinc-500">
               {roundsWon} round{roundsWon === 1 ? "" : "s"}
+              {streak > 1 && <span className="ml-1 text-amber-200">· 🔥 {streak}</span>}
             </div>
           </div>
         )}
@@ -463,17 +537,47 @@ export default function Page() {
                 {phase.index + 1} / {phase.total}
               </span>{" "}
               <span className="text-zinc-500">
-                · worth {POINTS_PER_QUOTE[phase.index]} pt
-                {POINTS_PER_QUOTE[phase.index] === 1 ? "" : "s"}
+                · worth {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCount(phase.hintsUsed))} pt
+                {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCount(phase.hintsUsed)) === 1
+                  ? ""
+                  : "s"}
               </span>
               {phase.year !== undefined && (
                 <span className="ml-2 rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-xs text-amber-200">
                   Released in {phase.year}
                 </span>
               )}
+              {phase.genres && phase.genres.length > 0 && (
+                <span className="ml-2 rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-xs text-amber-200">
+                  {phase.genres.join(" · ")}
+                </span>
+              )}
             </span>
             <span>{phase.pendingSkip ? "Skipping…" : null}</span>
           </div>
+
+          {(difficulty === "hard" || !phase.hintsUsed.genre) && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              {difficulty === "hard" && !phase.hintsUsed.year && (
+                <button
+                  type="button"
+                  onClick={() => void buyHint("year")}
+                  className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                >
+                  Reveal year — 1 pt
+                </button>
+              )}
+              {!phase.hintsUsed.genre && (
+                <button
+                  type="button"
+                  onClick={() => void buyHint("genre")}
+                  className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                >
+                  Reveal genre — 1 pt
+                </button>
+              )}
+            </div>
+          )}
 
           {phase.lastWrongGuess && (
             <div className="rounded-lg border border-rose-400/40 bg-rose-400/10 px-4 py-2 text-sm text-rose-200">
@@ -631,6 +735,23 @@ export default function Page() {
               View on IMDb →
             </a>
           </div>
+
+          {phase.outcomes.length > 0 && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+              <div className="text-xs uppercase tracking-wider text-zinc-500">Round breakdown</div>
+              <div className="mt-2 font-mono text-2xl tracking-wide">
+                {phase.outcomes.map((o, i) => (
+                  <span key={i}>{emojiFor(o)}</span>
+                ))}
+              </div>
+              <button
+                onClick={() => void shareResults()}
+                className="mt-3 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition hover:border-amber-300 hover:text-amber-200"
+              >
+                Share results
+              </button>
+            </div>
+          )}
 
           <div className="space-y-3">
             <h3 className="text-sm uppercase tracking-wider text-zinc-400">

@@ -6,6 +6,8 @@ import type { Difficulty, ScoreState } from "@/lib/types";
 export const runtime = "nodejs";
 
 const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
+const STREAK_BONUS_CAP = 5;
+const HINT_COST_PER = 1;
 
 export async function POST(req: Request) {
   let body: { token?: string; scoreToken?: string; guess?: string; exact?: boolean } = {};
@@ -20,35 +22,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Round already finished" }, { status: 410 });
   }
   const difficulty: Difficulty = round.difficulty ?? "hard";
+  const hintsUsed = round.hintsUsed ?? {};
+  const hintCount = (hintsUsed.year ? 1 : 0) + (hintsUsed.genre ? 1 : 0);
 
   const guess = (body.guess ?? "").trim();
   if (!guess) {
     return NextResponse.json({ error: "Empty guess — call /skip instead" }, { status: 400 });
   }
 
-  // Combobox picks come with `exact: true` and are checked against the full
-  // canonical title only — no subtitle/article stripping fuzz. Free-text
-  // submissions go through the lenient fuzzy matcher.
   const isMatch = body.exact
     ? matchesExact(guess, round.acceptableTitles[0] ?? "")
     : matches(guess, round.acceptableTitles);
+
+  let session: ScoreState | null = body.scoreToken ? decodeScore(body.scoreToken) : null;
+  if (!session) {
+    session = {
+      id: crypto.randomUUID(),
+      score: 0,
+      roundsWon: 0,
+      startedAt: Date.now(),
+      lastUpdatedAt: Date.now(),
+      difficulty,
+      streak: 0,
+      outcomes: [],
+    };
+  }
+  const prevStreak = session.streak ?? 0;
+  const outcomes = session.outcomes ?? [];
+
   if (isMatch) {
     round.status = "won";
-    const points = POINTS_PER_QUOTE[round.index] ?? 0;
+    const qualifiesForStreak = round.index === 0 && hintCount === 0;
+    const basePoints = POINTS_PER_QUOTE[round.index] ?? 0;
+    const points = qualifiesForStreak
+      ? 5 + Math.min(STREAK_BONUS_CAP, prevStreak)
+      : Math.max(1, basePoints - hintCount * HINT_COST_PER);
 
-    let session: ScoreState | null = body.scoreToken ? decodeScore(body.scoreToken) : null;
-    if (!session) {
-      session = {
-        id: crypto.randomUUID(),
-        score: 0,
-        roundsWon: 0,
-        startedAt: Date.now(),
-        lastUpdatedAt: Date.now(),
-        difficulty,
-      };
-    }
     session.score += points;
     session.roundsWon += 1;
+    session.streak = qualifiesForStreak ? prevStreak + 1 : 0;
+    session.outcomes = [...outcomes, round.index];
     session.lastUpdatedAt = Date.now();
 
     return NextResponse.json({
@@ -61,13 +74,17 @@ export async function POST(req: Request) {
       scoreToken: encodeScore(session),
       score: session.score,
       roundsWon: session.roundsWon,
+      streak: session.streak,
     });
   }
 
-  // Wrong guess: behave like a skip — advance to the next quote, or end the round if exhausted.
+  // Wrong guess: advance to the next quote, or end the round if exhausted.
   const nextIndex = round.index + 1;
   if (nextIndex >= round.quotes.length) {
     round.status = "lost";
+    session.streak = 0;
+    session.outcomes = [...outcomes, -1];
+    session.lastUpdatedAt = Date.now();
     return NextResponse.json({
       correct: false,
       failed: true,
@@ -75,6 +92,10 @@ export async function POST(req: Request) {
       year: round.year,
       imdbId: round.imdbId,
       quotesShown: round.quotes,
+      scoreToken: encodeScore(session),
+      score: session.score,
+      roundsWon: session.roundsWon,
+      outcomes: session.outcomes,
     });
   }
 

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { decodeRound, encodeRound } from "@/lib/token";
+import { decodeRound, decodeScore, encodeRound, encodeScore } from "@/lib/token";
+import type { ScoreState } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  let body: { token?: string } = {};
+  let body: { token?: string; scoreToken?: string } = {};
   try {
     body = await req.json();
   } catch {
@@ -19,12 +20,22 @@ export async function POST(req: Request) {
   const nextIndex = round.index + 1;
   if (nextIndex >= round.quotes.length) {
     round.status = "lost";
+    // Skipping past the last quote also ends the game; update the score
+    // token's streak/outcomes so the share grid and streak are accurate.
+    const session: ScoreState | null = body.scoreToken ? decodeScore(body.scoreToken) : null;
+    if (session) {
+      session.streak = 0;
+      session.outcomes = [...(session.outcomes ?? []), -1];
+      session.lastUpdatedAt = Date.now();
+    }
     return NextResponse.json({
       failed: true,
       title: round.title,
       year: round.year,
       imdbId: round.imdbId,
       quotesShown: round.quotes,
+      scoreToken: session ? encodeScore(session) : undefined,
+      outcomes: session?.outcomes,
     });
   }
 

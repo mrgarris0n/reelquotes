@@ -73,6 +73,8 @@ export type RoundStatus = "active" | "won" | "lost";
 
 export type Difficulty = "easy" | "normal" | "hard";
 
+export type HintKind = "year" | "genre";
+
 export interface RoundState {
   id: string;
   imdbId: string;
@@ -84,6 +86,7 @@ export interface RoundState {
   status: RoundStatus;
   startedAt: number;
   difficulty: Difficulty;
+  hintsUsed?: { year?: true; genre?: true };
 }
 
 export interface ScoreState {
@@ -93,6 +96,8 @@ export interface ScoreState {
   startedAt: number;
   lastUpdatedAt: number;
   difficulty: Difficulty;
+  streak?: number;
+  outcomes?: number[]; // per-round: quote index when won, -1 when game-over round
 }
 
 export interface LeaderboardEntry {

@@ -52,6 +52,7 @@ export async function POST(req: Request) {
       status: "active",
       startedAt: Date.now(),
       difficulty,
+      hintsUsed: {},
     };
     return NextResponse.json({
       token: encodeRound(round),
