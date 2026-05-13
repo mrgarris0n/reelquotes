@@ -452,13 +452,66 @@ export default function Page() {
             </div>
           )}
 
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 text-sm text-zinc-300">
-            <p className="font-semibold text-zinc-100">Scoring</p>
-            <p className="mt-1 text-zinc-400">
-              5 points if you guess on quote 1, 4 on quote 2, … 1 on quote 5. Wrong guesses just
-              show the next quote — the game ends when you run out of quotes for a movie.
-            </p>
-          </div>
+          <details className="group rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-300 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer select-none items-center justify-between gap-2 text-zinc-200">
+              <span className="font-semibold">How to play &amp; scoring</span>
+              <span className="text-xs text-zinc-500 transition group-open:rotate-180">▾</span>
+            </summary>
+
+            <div className="mt-4 space-y-4 text-zinc-400">
+              <div>
+                <p className="font-semibold text-zinc-200">Gameplay</p>
+                <p className="mt-1">
+                  Each round shows quotes from a random movie. Type or pick the title from the
+                  dropdown. Submit an empty guess (or press Skip) to see another quote from the
+                  same movie. A wrong guess counts as a skip — you just see the next quote.
+                  When all five quotes are exhausted the game ends.
+                </p>
+              </div>
+
+              <div>
+                <p className="font-semibold text-zinc-200">Scoring</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  <li>5 pts if you guess on quote 1, 4 on quote 2, … 1 on quote 5.</li>
+                  <li>
+                    Streak bonus: guess on quote 1 with no hints used in consecutive rounds and
+                    each next perfect round earns +1 extra point (capped at +5).
+                  </li>
+                  <li>
+                    Hints cost 1 pt each (deducted from this round's payout, floored at 1). Using
+                    any hint disqualifies the round from the streak bonus.
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold text-zinc-200">Difficulty</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  <li>
+                    <span className="text-zinc-200">Easy</span> — real character names, release
+                    year shown.
+                  </li>
+                  <li>
+                    <span className="text-zinc-200">Normal</span> — character names anonymized,
+                    release year shown.
+                  </li>
+                  <li>
+                    <span className="text-zinc-200">Hard</span> — anonymized, no year (you can
+                    still pay 1 pt to reveal it as a hint).
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold text-zinc-200">Leaderboard</p>
+                <p className="mt-1">
+                  At game over, if your score is positive you can put your name (1–10
+                  alphanumeric characters) on the top-20 leaderboard. Filterable by difficulty.
+                  Each session can only be submitted once.
+                </p>
+              </div>
+            </div>
+          </details>
 
           <div>
             <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Era</h2>
