@@ -73,7 +73,7 @@ export type RoundStatus = "active" | "won" | "lost";
 
 export type Difficulty = "easy" | "normal" | "hard";
 
-export type HintKind = "year" | "genre";
+export type HintKind = "year" | "genre" | "title";
 
 export interface RoundState {
   id: string;
@@ -86,7 +86,7 @@ export interface RoundState {
   status: RoundStatus;
   startedAt: number;
   difficulty: Difficulty;
-  hintsUsed?: { year?: true; genre?: true };
+  hintsUsed?: { year?: true; genre?: true; title?: true };
 }
 
 export interface ScoreState {

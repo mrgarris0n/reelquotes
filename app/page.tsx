@@ -38,7 +38,8 @@ type Phase =
       total: number;
       year?: number;
       genres?: string[];
-      hintsUsed: { year?: true; genre?: true };
+      titleMask?: string;
+      hintsUsed: { year?: true; genre?: true; title?: true };
       pendingSkip?: boolean;
       lastWrongGuess?: string;
     }
@@ -69,8 +70,14 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
-function hintCount(used: { year?: true; genre?: true }): number {
-  return (used.year ? 1 : 0) + (used.genre ? 1 : 0);
+const HINT_COSTS = { year: 1, genre: 1, title: 2 } as const;
+
+function hintCost(used: { year?: true; genre?: true; title?: true }): number {
+  return (
+    (used.year ? HINT_COSTS.year : 0) +
+    (used.genre ? HINT_COSTS.genre : 0) +
+    (used.title ? HINT_COSTS.title : 0)
+  );
 }
 
 const OUTCOME_EMOJI = ["🟩", "🟨", "🟨", "🟧", "🟥"]; // by quote index 0..4
@@ -325,7 +332,7 @@ export default function Page() {
     }
   }
 
-  async function buyHint(kind: "year" | "genre") {
+  async function buyHint(kind: "year" | "genre" | "title") {
     if (phase.kind !== "playing") return;
     if (phase.hintsUsed[kind]) return;
     const res = await fetch("/api/round/hint", {
@@ -343,6 +350,7 @@ export default function Page() {
       token: data.token,
       year: data.year ?? phase.year,
       genres: data.genres ?? phase.genres,
+      titleMask: data.titleMask ?? phase.titleMask,
       hintsUsed: { ...phase.hintsUsed, [kind]: true },
     });
   }
@@ -484,8 +492,12 @@ export default function Page() {
                     each next perfect round earns +1 extra point (capped at +5).
                   </li>
                   <li>
-                    Hints cost 1 pt each (deducted from this round's payout, floored at 1). Using
-                    any hint disqualifies the round from the streak bonus.
+                    Hints: <span className="text-zinc-200">Reveal year</span> (1 pt, hard only),{" "}
+                    <span className="text-zinc-200">Reveal genre</span> (1 pt), and{" "}
+                    <span className="text-zinc-200">Reveal first letters</span> (2 pts —
+                    hangman-style outline of the title). Costs are deducted from this round's
+                    payout (floored at 1) and using any hint disqualifies the round from the
+                    streak bonus.
                   </li>
                 </ul>
               </div>
@@ -615,8 +627,8 @@ export default function Page() {
                 {phase.index + 1} / {phase.total}
               </span>{" "}
               <span className="text-zinc-500">
-                · worth {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCount(phase.hintsUsed))} pt
-                {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCount(phase.hintsUsed)) === 1
+                · worth {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed))} pt
+                {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed)) === 1
                   ? ""
                   : "s"}
               </span>
@@ -634,26 +646,52 @@ export default function Page() {
             <span>{phase.pendingSkip ? "Skipping…" : null}</span>
           </div>
 
-          {(difficulty === "hard" || !phase.hintsUsed.genre) && (
-            <div className="flex flex-wrap gap-2 text-xs">
-              {difficulty === "hard" && !phase.hintsUsed.year && (
-                <button
-                  type="button"
-                  onClick={() => void buyHint("year")}
-                  className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
-                >
-                  Reveal year — 1 pt
-                </button>
-              )}
-              {!phase.hintsUsed.genre && (
-                <button
-                  type="button"
-                  onClick={() => void buyHint("genre")}
-                  className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
-                >
-                  Reveal genre — 1 pt
-                </button>
-              )}
+          {(() => {
+            const canShowYear = difficulty === "hard" && !phase.hintsUsed.year;
+            const canShowGenre = !phase.hintsUsed.genre;
+            const canShowTitle = !phase.hintsUsed.title;
+            if (!canShowYear && !canShowGenre && !canShowTitle) return null;
+            return (
+              <div className="flex flex-wrap gap-2 text-xs">
+                {canShowYear && (
+                  <button
+                    type="button"
+                    onClick={() => void buyHint("year")}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                  >
+                    Reveal year — 1 pt
+                  </button>
+                )}
+                {canShowGenre && (
+                  <button
+                    type="button"
+                    onClick={() => void buyHint("genre")}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                  >
+                    Reveal genre — 1 pt
+                  </button>
+                )}
+                {canShowTitle && (
+                  <button
+                    type="button"
+                    onClick={() => void buyHint("title")}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                  >
+                    Reveal first letters — 2 pts
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
+          {phase.titleMask && (
+            <div className="rounded-lg border border-amber-300/30 bg-amber-300/5 px-4 py-3">
+              <div className="text-xs uppercase tracking-wider text-amber-300/80">
+                Title outline
+              </div>
+              <div className="mt-1 font-mono text-xl tracking-widest text-amber-100">
+                {phase.titleMask}
+              </div>
             </div>
           )}
 

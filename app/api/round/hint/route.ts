@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { decodeRound, encodeRound } from "@/lib/token";
 import { findById } from "@/lib/pool";
-import type { HintKind } from "@/lib/types";
+import { maskTitle, type HintsUsed } from "@/lib/hints";
+import type { HintKind, RoundState } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const VALID_HINTS: HintKind[] = ["year", "genre"];
+const VALID_HINTS: HintKind[] = ["year", "genre", "title"];
 
 export async function POST(req: Request) {
   let body: { token?: string; hint?: string } = {};
@@ -26,27 +27,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unknown hint type" }, { status: 400 });
   }
 
-  const hintsUsed = round.hintsUsed ?? {};
-  if (hintsUsed[hint]) {
-    // Already paid for; just return the existing data so the client can re-render.
-    return NextResponse.json({ token: encodeRound(round), ...buildReveal(round, hintsUsed) });
+  const hintsUsed: HintsUsed = round.hintsUsed ?? {};
+  if (!hintsUsed[hint]) {
+    hintsUsed[hint] = true;
+    round.hintsUsed = hintsUsed;
   }
-
-  hintsUsed[hint] = true;
-  round.hintsUsed = hintsUsed;
 
   return NextResponse.json({ token: encodeRound(round), ...buildReveal(round, hintsUsed) });
 }
 
 function buildReveal(
-  round: ReturnType<typeof decodeRound> & object,
-  hintsUsed: { year?: true; genre?: true },
-): { year?: number; genres?: string[] } {
-  const out: { year?: number; genres?: string[] } = {};
+  round: RoundState,
+  hintsUsed: HintsUsed,
+): { year?: number; genres?: string[]; titleMask?: string } {
+  const out: { year?: number; genres?: string[]; titleMask?: string } = {};
   if (hintsUsed.year) out.year = round.year;
   if (hintsUsed.genre) {
     const movie = findById(round.imdbId);
     out.genres = movie?.genres ?? [];
   }
+  if (hintsUsed.title) out.titleMask = maskTitle(round.title);
   return out;
 }

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { decodeRound, decodeScore, encodeRound, encodeScore } from "@/lib/token";
 import { matches, matchesExact } from "@/lib/matcher";
+import { anyHintUsed, totalHintCost } from "@/lib/hints";
 import type { Difficulty, ScoreState } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
 const STREAK_BONUS_CAP = 5;
-const HINT_COST_PER = 1;
 
 export async function POST(req: Request) {
   let body: { token?: string; scoreToken?: string; guess?: string; exact?: boolean } = {};
@@ -23,7 +23,9 @@ export async function POST(req: Request) {
   }
   const difficulty: Difficulty = round.difficulty ?? "hard";
   const hintsUsed = round.hintsUsed ?? {};
-  const hintCount = (hintsUsed.year ? 1 : 0) + (hintsUsed.genre ? 1 : 0);
+  const hintCost = totalHintCost(hintsUsed);
+  const hintCount =
+    (hintsUsed.year ? 1 : 0) + (hintsUsed.genre ? 1 : 0) + (hintsUsed.title ? 1 : 0);
 
   const guess = (body.guess ?? "").trim();
   if (!guess) {
@@ -52,11 +54,11 @@ export async function POST(req: Request) {
 
   if (isMatch) {
     round.status = "won";
-    const qualifiesForStreak = round.index === 0 && hintCount === 0;
+    const qualifiesForStreak = round.index === 0 && !anyHintUsed(hintsUsed);
     const basePoints = POINTS_PER_QUOTE[round.index] ?? 0;
     const streakBonus = qualifiesForStreak ? Math.min(STREAK_BONUS_CAP, prevStreak) : 0;
-    const hintCost = qualifiesForStreak ? 0 : hintCount * HINT_COST_PER;
-    const rawPoints = basePoints + streakBonus - hintCost;
+    const effectiveHintCost = qualifiesForStreak ? 0 : hintCost;
+    const rawPoints = basePoints + streakBonus - effectiveHintCost;
     const points = Math.max(1, rawPoints);
 
     session.score += points;
@@ -74,7 +76,7 @@ export async function POST(req: Request) {
       points,
       basePoints,
       streakBonus,
-      hintCost,
+      hintCost: effectiveHintCost,
       hintCount,
       pointsFloored: rawPoints < 1,
       scoreToken: encodeScore(session),
