@@ -32,6 +32,9 @@ async function writeEntries(entries: LeaderboardEntry[]): Promise<void> {
     contentType: "application/json",
     allowOverwrite: true,
     addRandomSuffix: false,
+    // Vercel Blob defaults to a 30-day edge TTL — way too long for a
+    // leaderboard that should reflect new submissions immediately.
+    cacheControlMaxAge: 0,
   });
 }
 
