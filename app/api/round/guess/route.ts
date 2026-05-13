@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     const streakBonus = qualifiesForStreak ? Math.min(STREAK_BONUS_CAP, prevStreak) : 0;
     const effectiveHintCost = qualifiesForStreak ? 0 : hintCost;
     const rawPoints = basePoints + streakBonus - effectiveHintCost;
-    const points = Math.max(1, rawPoints);
+    const points = Math.max(0, rawPoints);
 
     session.score += points;
     session.roundsWon += 1;
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       streakBonus,
       hintCost: effectiveHintCost,
       hintCount,
-      pointsFloored: rawPoints < 1,
+      pointsFloored: rawPoints < 0,
       scoreToken: encodeScore(session),
       score: session.score,
       roundsWon: session.roundsWon,

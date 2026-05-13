@@ -502,7 +502,7 @@ export default function Page() {
                     <span className="text-zinc-200">Reveal genre</span> (1 pt), and{" "}
                     <span className="text-zinc-200">Reveal first letters</span> (2 pts —
                     hangman-style outline of the title). Costs are deducted from this round's
-                    payout (floored at 1) and using any hint disqualifies the round from the
+                    payout (floored at 0) and using any hint disqualifies the round from the
                     streak bonus.
                   </li>
                 </ul>
@@ -633,8 +633,8 @@ export default function Page() {
                 {phase.index + 1} / {phase.total}
               </span>{" "}
               <span className="text-zinc-500">
-                · worth {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed))} pt
-                {Math.max(1, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed)) === 1
+                · worth {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed))} pt
+                {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed)) === 1
                   ? ""
                   : "s"}
               </span>
@@ -833,7 +833,7 @@ export default function Page() {
                   +{phase.points} pt{phase.points === 1 ? "" : "s"}
                 </span>
                 {phase.pointsFloored && (
-                  <span className="text-xs text-zinc-500">(floored at 1)</span>
+                  <span className="text-xs text-zinc-500">(floored at 0)</span>
                 )}
               </div>
             ) : (
