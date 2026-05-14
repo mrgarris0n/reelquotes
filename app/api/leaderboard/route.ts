@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     roundsWon: session.roundsWon,
     sessionId: session.id,
     submittedAt: Date.now(),
-    difficulty: session.difficulty ?? "hard",
+    difficulty: session.difficulty,
   };
 
   try {

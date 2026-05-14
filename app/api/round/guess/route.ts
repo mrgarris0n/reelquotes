@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { decodeRound, decodeScore, encodeRound, encodeScore } from "@/lib/token";
 import { matches, matchesExact } from "@/lib/matcher";
 import { anyHintUsed, totalHintCost } from "@/lib/hints";
-import type { Difficulty, ScoreState } from "@/lib/types";
+import { isRoundExpired, isScoreExpired } from "@/lib/expiry";
+import type { ScoreState } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,22 @@ export async function POST(req: Request) {
   if (round.status !== "active") {
     return NextResponse.json({ error: "Round already finished" }, { status: 410 });
   }
-  const difficulty: Difficulty = round.difficulty ?? "hard";
+  if (isRoundExpired(round.startedAt)) {
+    return NextResponse.json({ error: "Round expired" }, { status: 410 });
+  }
+
+  const session: ScoreState | null = body.scoreToken ? decodeScore(body.scoreToken) : null;
+  if (!session) {
+    return NextResponse.json({ error: "Invalid score token" }, { status: 400 });
+  }
+  if (isScoreExpired(session.lastUpdatedAt)) {
+    return NextResponse.json({ error: "Session expired" }, { status: 410 });
+  }
+  if (round.sessionId !== session.id) {
+    return NextResponse.json({ error: "Token mismatch" }, { status: 400 });
+  }
+
+  const difficulty = round.difficulty;
   const hintsUsed = round.hintsUsed ?? {};
   const hintCost = totalHintCost(hintsUsed);
   const hintCount =
@@ -36,19 +52,6 @@ export async function POST(req: Request) {
     ? matchesExact(guess, round.acceptableTitles[0] ?? "")
     : matches(guess, round.acceptableTitles);
 
-  let session: ScoreState | null = body.scoreToken ? decodeScore(body.scoreToken) : null;
-  if (!session) {
-    session = {
-      id: crypto.randomUUID(),
-      score: 0,
-      roundsWon: 0,
-      startedAt: Date.now(),
-      lastUpdatedAt: Date.now(),
-      difficulty,
-      streak: 0,
-      outcomes: [],
-    };
-  }
   const prevStreak = session.streak ?? 0;
   const outcomes = session.outcomes ?? [];
 

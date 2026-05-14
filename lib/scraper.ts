@@ -45,10 +45,7 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-export async function scrapeQuotes(
-  imdbId: string,
-  difficulty: Difficulty,
-): Promise<Quote[]> {
+export function pickQuotes(imdbId: string, difficulty: Difficulty): Quote[] {
   const all = loadAll();
   const pool = all[imdbId];
   if (!pool || pool.length < REQUIRED_QUOTES) {

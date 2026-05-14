@@ -77,6 +77,7 @@ export type HintKind = "year" | "genre" | "title";
 
 export interface RoundState {
   id: string;
+  sessionId: string;
   imdbId: string;
   title: string;
   year: number;
@@ -86,7 +87,7 @@ export interface RoundState {
   status: RoundStatus;
   startedAt: number;
   difficulty: Difficulty;
-  hintsUsed?: { year?: true; genre?: true; title?: true };
+  hintsUsed?: { year?: boolean; genre?: boolean; title?: boolean };
 }
 
 export interface ScoreState {

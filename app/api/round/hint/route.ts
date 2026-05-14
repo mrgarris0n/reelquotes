@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { decodeRound, encodeRound } from "@/lib/token";
 import { findById } from "@/lib/pool";
 import { maskTitle, type HintsUsed } from "@/lib/hints";
+import { isRoundExpired } from "@/lib/expiry";
 import type { HintKind, RoundState } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -20,6 +21,9 @@ export async function POST(req: Request) {
   if (!round) return NextResponse.json({ error: "Invalid round token" }, { status: 400 });
   if (round.status !== "active") {
     return NextResponse.json({ error: "Round already finished" }, { status: 410 });
+  }
+  if (isRoundExpired(round.startedAt)) {
+    return NextResponse.json({ error: "Round expired" }, { status: 410 });
   }
 
   const hint = body.hint as HintKind | undefined;

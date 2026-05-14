@@ -5,17 +5,29 @@ const ALGO = "aes-256-gcm";
 const IV_LEN = 12;
 const TAG_LEN = 16;
 
+const MIN_SECRET_LEN = 16;
+
 function loadKey(): Buffer {
   const secret = process.env.REELQUOTES_SECRET;
-  if (secret && secret.length >= 16) {
+  if (secret && secret.length >= MIN_SECRET_LEN) {
     return createHash("sha256").update(secret).digest();
   }
-  const g = globalThis as unknown as { __reelquotesKey?: Buffer };
+  const g = globalThis as unknown as {
+    __reelquotesKey?: Buffer;
+    __reelquotesSecretWarned?: true;
+  };
   if (!g.__reelquotesKey) {
     g.__reelquotesKey = randomBytes(32);
-    if (process.env.NODE_ENV === "production") {
+  }
+  if (process.env.NODE_ENV === "production" && !g.__reelquotesSecretWarned) {
+    g.__reelquotesSecretWarned = true;
+    if (!secret) {
       console.warn(
-        "REELQUOTES_SECRET is not set — using a per-process key. Tokens may break across Lambda instances. Set REELQUOTES_SECRET in your Vercel project env vars (>=16 chars).",
+        "REELQUOTES_SECRET is not set — using a per-process key. Tokens issued by one Lambda instance will be rejected by another. Set REELQUOTES_SECRET in your Vercel project env vars (≥32 random hex bytes).",
+      );
+    } else {
+      console.warn(
+        `REELQUOTES_SECRET is too short (${secret.length} chars, need ≥${MIN_SECRET_LEN}) — falling back to a per-process key. Tokens will break across Lambda instances. Use 32 random hex bytes.`,
       );
     }
   }

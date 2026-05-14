@@ -123,6 +123,7 @@ export default function Page() {
   const [streak, setStreak] = useState(0);
   const [canNativeShare, setCanNativeShare] = useState(false);
   const [shareToast, setShareToast] = useState<string | null>(null);
+  const [actionInFlight, setActionInFlight] = useState(false);
   const [titles, setTitles] = useState<TitleEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -234,11 +235,18 @@ export default function Page() {
 
   async function sendGuess(g: string, exact = false) {
     if (phase.kind !== "playing") return;
-    const res = await fetch("/api/round/guess", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: phase.token, scoreToken, guess: g, exact }),
-    });
+    if (actionInFlight) return;
+    setActionInFlight(true);
+    let res: Response;
+    try {
+      res = await fetch("/api/round/guess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: phase.token, scoreToken, guess: g, exact }),
+      });
+    } finally {
+      setActionInFlight(false);
+    }
     const data = await res.json();
     if (!res.ok) {
       setPhase({ kind: "error", message: data.error ?? "Guess failed" });
@@ -298,14 +306,21 @@ export default function Page() {
 
   async function skip() {
     if (phase.kind !== "playing") return;
+    if (actionInFlight) return;
+    setActionInFlight(true);
     const tokenAtSkip = phase.token;
     const hintsAtSkip = phase.hintsUsed;
     setPhase({ ...phase, pendingSkip: true });
-    const res = await fetch("/api/round/skip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: tokenAtSkip, scoreToken }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/round/skip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: tokenAtSkip, scoreToken }),
+      });
+    } finally {
+      setActionInFlight(false);
+    }
     const data = await res.json();
     if (!res.ok) {
       setPhase({ kind: "error", message: data.error ?? "Skip failed" });
@@ -779,7 +794,7 @@ export default function Page() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={guess.trim() === ""}
+                disabled={guess.trim() === "" || actionInFlight}
                 className="flex-1 rounded-lg bg-amber-300 px-4 py-2.5 font-semibold text-zinc-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
               >
                 Guess
@@ -787,7 +802,8 @@ export default function Page() {
               <button
                 type="button"
                 onClick={() => skip()}
-                className="flex-1 rounded-lg border border-zinc-700 px-4 py-2.5 text-zinc-200 transition hover:border-zinc-500"
+                disabled={actionInFlight}
+                className="flex-1 rounded-lg border border-zinc-700 px-4 py-2.5 text-zinc-200 transition hover:border-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Skip
               </button>
