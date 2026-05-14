@@ -170,4 +170,4 @@ One-time Vercel project setup:
 
 ## License
 
-No license file. Personal project.
+Source code licensed under the **MIT License** — see [`LICENSE`](./LICENSE). The license intentionally does *not* extend to `data/quotes.json`, which contains material scraped from IMDb and remains the IP of its rights-holders (bundled here for personal/non-commercial use only).
