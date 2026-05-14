@@ -1021,6 +1021,15 @@ export default function Page() {
           >
             mrgarris0n
           </a>
+          {" · "}
+          <a
+            href={`${GITHUB_REPO_URL}/issues/new`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-zinc-300 underline-offset-2 hover:text-amber-300 hover:underline"
+          >
+            Report an issue
+          </a>
         </p>
         <p className="mt-1 font-mono text-[10px] text-zinc-600">
           v{APP_VERSION}
