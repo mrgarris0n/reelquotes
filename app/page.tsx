@@ -187,6 +187,7 @@ export default function Page() {
         setPhase({ kind: "error", message: data.error ?? "Failed to start round" });
         return;
       }
+       if (data.scoreToken) setScoreToken(data.scoreToken);
       setPhase({
         kind: "playing",
         token: data.token,
