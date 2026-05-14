@@ -63,7 +63,9 @@ function shuffle<T>(arr: T[]): T[] {
   const out = [...arr];
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
+    const tmp = out[i] as T;
+    out[i] = out[j] as T;
+    out[j] = tmp;
   }
   return out;
 }
@@ -127,7 +129,7 @@ async function main(): Promise<void> {
 
   async function worker(): Promise<void> {
     while (cursor < todo.length) {
-      const movie = todo[cursor++];
+      const movie = todo[cursor++]!;
       inFlight++;
       try {
         const all = await fetchQuotes(movie.id);

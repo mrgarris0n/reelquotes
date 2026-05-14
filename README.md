@@ -44,6 +44,7 @@ Difficulty is locked to the session at first round-start and stored inside the s
 - `app/api/round/start` — picks a movie, builds quotes, returns a fresh round token (and `year` for easy/normal modes).
 - `app/api/round/guess` — validates the round token; on a correct guess, increments the cumulative score in the score token and returns the refreshed token. Honours `exact: true` for dropdown picks.
 - `app/api/round/skip` — advances quote index or ends the round.
+- `app/api/round/hint` — POST `{ token, hint }` buys a hint (`year`, `genre`, or `title`). Year=1pt, genre=1pt, title=2pts. Returns updated round token plus the revealed data. Each hint kind buyable once per round; any hint disqualifies the round from the streak bonus.
 - `app/api/leaderboard` — `GET ?difficulty=easy|normal|hard` returns the top 20 (or all-mode top 20 with no filter); `POST` accepts `{ name, scoreToken }` and persists.
 - `app/api/titles` — returns `{ title, year }[]` for the autocomplete combobox.
 

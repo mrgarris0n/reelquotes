@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import pkg from "../package.json";
-import { ALL_GENRES, type Decade, type Difficulty, type Filters, type Genre, type Quote } from "@/lib/types";
+import { ALL_GENRES, type Decade, type Difficulty, type Filters, type Genre, type HintKind, type Quote } from "@/lib/types";
+import { totalHintCost, type HintsUsed } from "@/lib/hints";
+import { POINTS_PER_QUOTE } from "@/lib/scoring";
+import { NAME_MAX_LEN, sanitizeName } from "@/lib/name";
 
 const APP_VERSION = pkg.version;
 const COMMIT_SHA = process.env.COMMIT_SHA ?? "";
@@ -25,8 +28,6 @@ const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
   { id: "hard", label: "Hard", hint: "Anonymized characters · no year" },
 ];
 
-const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
-
 type Phase =
   | { kind: "setup" }
   | { kind: "loading" }
@@ -39,7 +40,7 @@ type Phase =
       year?: number;
       genres?: string[];
       titleMask?: string;
-      hintsUsed: { year?: true; genre?: true; title?: true };
+      hintsUsed: HintsUsed;
       pendingSkip?: boolean;
       lastWrongGuess?: string;
     }
@@ -68,16 +69,6 @@ type Phase =
 
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
-}
-
-const HINT_COSTS = { year: 1, genre: 1, title: 2 } as const;
-
-function hintCost(used: { year?: true; genre?: true; title?: true }): number {
-  return (
-    (used.year ? HINT_COSTS.year : 0) +
-    (used.genre ? HINT_COSTS.genre : 0) +
-    (used.title ? HINT_COSTS.title : 0)
-  );
 }
 
 const OUTCOME_EMOJI = ["🟩", "🟨", "🟨", "🟧", "🟥"]; // by quote index 0..4
@@ -224,12 +215,12 @@ export default function Page() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (phase.kind !== "playing") return;
-    const fromDropdown = highlight >= 0 && matches[highlight];
-    const picked = fromDropdown ? matches[highlight].title : guess.trim();
+    const highlighted = highlight >= 0 ? matches[highlight] : undefined;
+    const picked = highlighted ? highlighted.title : guess.trim();
     if (picked === "") {
       await skip();
     } else {
-      await sendGuess(picked, Boolean(fromDropdown));
+      await sendGuess(picked, Boolean(highlighted));
     }
   }
 
@@ -353,7 +344,7 @@ export default function Page() {
     }
   }
 
-  async function buyHint(kind: "year" | "genre" | "title") {
+  async function buyHint(kind: HintKind) {
     if (phase.kind !== "playing") return;
     if (phase.hintsUsed[kind]) return;
     const res = await fetch("/api/round/hint", {
@@ -402,9 +393,12 @@ export default function Page() {
     e.preventDefault();
     if (submitState.kind === "submitting" || submitState.kind === "submitted") return;
     if (!scoreToken) return;
-    const cleaned = submitName.replace(/[^A-Za-z0-9]/g, "").slice(0, 10);
+    const cleaned = sanitizeName(submitName);
     if (!cleaned) {
-      setSubmitState({ kind: "error", message: "Use 1–10 letters or digits." });
+      setSubmitState({
+        kind: "error",
+        message: `Use 1–${NAME_MAX_LEN} letters or digits.`,
+      });
       return;
     }
     setSubmitState({ kind: "submitting" });
@@ -648,8 +642,8 @@ export default function Page() {
                 {phase.index + 1} / {phase.total}
               </span>{" "}
               <span className="text-zinc-500">
-                · worth {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed))} pt
-                {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - hintCost(phase.hintsUsed)) === 1
+                · worth {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - totalHintCost(phase.hintsUsed))} pt
+                {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - totalHintCost(phase.hintsUsed)) === 1
                   ? ""
                   : "s"}
               </span>
@@ -940,17 +934,15 @@ export default function Page() {
                   Score {score} — make the leaderboard?
                 </p>
                 <p className="mt-1 text-xs text-zinc-400">
-                  Up to 10 letters or digits. No spaces or special characters.
+                  Up to {NAME_MAX_LEN} letters or digits. No spaces or special characters.
                 </p>
               </div>
               <div className="flex gap-3">
                 <input
                   type="text"
                   value={submitName}
-                  onChange={(e) =>
-                    setSubmitName(e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 10))
-                  }
-                  maxLength={10}
+                  onChange={(e) => setSubmitName(sanitizeName(e.target.value))}
+                  maxLength={NAME_MAX_LEN}
                   pattern="[A-Za-z0-9]+"
                   placeholder="Your name"
                   disabled={submitState.kind === "submitting"}

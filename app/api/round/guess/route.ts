@@ -3,12 +3,10 @@ import { decodeRound, decodeScore, encodeRound, encodeScore } from "@/lib/token"
 import { matches, matchesExact } from "@/lib/matcher";
 import { anyHintUsed, totalHintCost } from "@/lib/hints";
 import { isRoundExpired, isScoreExpired } from "@/lib/expiry";
+import { POINTS_PER_QUOTE, STREAK_BONUS_CAP } from "@/lib/scoring";
 import type { ScoreState } from "@/lib/types";
 
 export const runtime = "nodejs";
-
-const POINTS_PER_QUOTE = [5, 4, 3, 2, 1];
-const STREAK_BONUS_CAP = 5;
 
 export async function POST(req: Request) {
   let body: { token?: string; scoreToken?: string; guess?: string; exact?: boolean } = {};

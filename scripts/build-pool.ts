@@ -80,7 +80,9 @@ async function main(): Promise<void> {
   console.log("Reading ratings...");
   const ratings = new Map<string, number>(); // tconst -> numVotes
   for await (const cols of tsvLines(ratingsGz)) {
-    const [tconst, , numVotes] = cols;
+    const tconst = cols[0];
+    const numVotes = cols[2];
+    if (!tconst || !numVotes) continue;
     const votes = Number(numVotes);
     if (votes >= MIN_VOTES) ratings.set(tconst, votes);
   }
@@ -94,6 +96,7 @@ async function main(): Promise<void> {
     const isAdult = cols[4];
     const startYear = cols[5];
     const genresRaw = cols[8]; // title.basics col index 8
+    if (!tconst || !primaryTitle) continue;
     if (titleType !== "movie") continue;
     if (isAdult === "1") continue;
     const votes = ratings.get(tconst);

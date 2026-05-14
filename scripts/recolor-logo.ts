@@ -29,10 +29,10 @@ async function main(): Promise<void> {
 
   const out = Buffer.from(data);
   for (let i = 0; i < out.length; i += 4) {
-    const r = out[i];
-    const g = out[i + 1];
-    const b = out[i + 2];
-    const aIn = out[i + 3];
+    const r = out[i]!;
+    const g = out[i + 1]!;
+    const b = out[i + 2]!;
+    const aIn = out[i + 3]!;
 
     // 0 = pure cream (background), 1 = no cream
     // Cream is roughly (245, 240, 225). We measure how close to that.

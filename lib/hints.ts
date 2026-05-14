@@ -6,20 +6,22 @@ export const HINT_COSTS: Record<HintKind, number> = {
   title: 2,
 };
 
+const HINT_KINDS = Object.keys(HINT_COSTS) as HintKind[];
+
 export type HintsUsed = NonNullable<RoundState["hintsUsed"]>;
 
 export function totalHintCost(used: HintsUsed | undefined): number {
   if (!used) return 0;
-  return (
-    (used.year ? HINT_COSTS.year : 0) +
-    (used.genre ? HINT_COSTS.genre : 0) +
-    (used.title ? HINT_COSTS.title : 0)
-  );
+  let total = 0;
+  for (const kind of HINT_KINDS) {
+    if (used[kind]) total += HINT_COSTS[kind];
+  }
+  return total;
 }
 
 export function anyHintUsed(used: HintsUsed | undefined): boolean {
   if (!used) return false;
-  return Boolean(used.year || used.genre || used.title);
+  return HINT_KINDS.some((kind) => Boolean(used[kind]));
 }
 
 /**

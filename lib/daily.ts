@@ -43,10 +43,13 @@ export function getDailyMovie(): DailyMovie | null {
   const seed = `${todayUTC()}|${process.env.REELQUOTES_SECRET ?? ""}`;
   const movieIdx = hashToInt(seed) % ids.length;
   const imdbId = ids[movieIdx];
+  if (!imdbId) return null;
 
   const movieQuotes = quotes[imdbId];
   if (!movieQuotes || movieQuotes.length === 0) return null;
   const quoteIdx = hashToInt(`${seed}|q`) % movieQuotes.length;
+  const quote = movieQuotes[quoteIdx];
+  if (!quote) return null;
 
   const movie = findById(imdbId);
   if (!movie) return null;
@@ -55,6 +58,6 @@ export function getDailyMovie(): DailyMovie | null {
     imdbId,
     title: movie.title,
     year: movie.year,
-    quote: movieQuotes[quoteIdx],
+    quote,
   };
 }

@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/round/**": ["./data/**/*"],
     "/api/daily/**": ["./data/**/*"],
+    "/api/titles/**": ["./data/**/*"],
   },
   // Surface Vercel build metadata to the client bundle so the footer can show
   // the deployed commit. Both vars are populated automatically on Vercel.

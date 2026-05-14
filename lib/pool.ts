@@ -41,7 +41,8 @@ export function pickRandom(filters: Filters = {}): Movie {
   if (filtered.length === 0) {
     throw new Error("No movies match the chosen filters");
   }
-  return filtered[Math.floor(Math.random() * filtered.length)];
+  const idx = Math.floor(Math.random() * filtered.length);
+  return filtered[idx]!;
 }
 
 export function findById(imdbId: string): Movie | undefined {

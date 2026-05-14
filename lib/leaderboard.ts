@@ -1,15 +1,10 @@
 import { get, put, BlobNotFoundError } from "@vercel/blob";
 import type { Difficulty, LeaderboardEntry } from "./types";
 
+export { NAME_MAX_LEN, sanitizeName } from "./name";
+
 const BLOB_KEY = "leaderboard.json";
 const MAX_ENTRIES = 20;
-
-export const NAME_MAX_LEN = 10;
-const NAME_RE = /[^A-Za-z0-9]/g;
-
-export function sanitizeName(input: string): string {
-  return input.replace(NAME_RE, "").slice(0, NAME_MAX_LEN);
-}
 
 async function readEntries(): Promise<LeaderboardEntry[]> {
   try {
