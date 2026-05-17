@@ -174,3 +174,77 @@ test("real-ish mixed page parses both character and dialogue sections", () => {
   assert.equal(q[2]!.lines.length, 2);
   assert.equal(q[2]!.lines[0]!.speaker, "Morpheus");
 });
+
+// --- series season-subpage format ------------------------------------------
+
+test("series: definition-list dialogue under level-3 episode headings", () => {
+  const wt = `
+{{italic title}}
+----
+:'''Season''' [[Show (season 1)|1]] [[Show (season 2)|2]] | [[Show|'''Main''']]
+----
+=== ''[[w:Pilot|Pilot]]'' [1.01] ===
+[[File:Poster.jpg|thumb|a caption]]
+:'''[[w:Walter White|Walter]]''': My name is Walter Hartwell White. This is a confession.
+<hr width="50%"/>
+:'''[[w:Jesse Pinkman|Jesse]]''': Why are you here?
+:'''Walter''': I was curious. There's a lot of money in it, huh?
+
+=== ''Cat's in the Bag'' [1.02] ===
+:'''Skyler''': What is going on with you? Talk to me, Walt.
+
+== External links ==
+* [https://x site]
+`;
+  const q = parseWikiquote(wt);
+  // nav header dropped; File caption ignored; External links skipped.
+  // 3 quotes: Walter solo, Jesse/Walter exchange, Skyler solo.
+  assert.equal(q.length, 3);
+  assert.equal(q[0]!.lines.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Walter");
+  assert.match(q[0]!.lines[0]!.text, /^My name is Walter/);
+  assert.equal(q[1]!.lines.length, 2);
+  assert.equal(q[1]!.lines[0]!.speaker, "Jesse");
+  assert.equal(q[1]!.lines[1]!.speaker, "Walter");
+  assert.equal(q[2]!.lines[0]!.speaker, "Skyler");
+});
+
+test("series: <hr> separates quotes within an episode", () => {
+  const wt = `
+=== Episode One ===
+:'''A''': First quote here, long enough to count.
+<hr/>
+:'''B''': Second separate quote, also long enough.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 2);
+  assert.equal(q[0]!.lines[0]!.speaker, "A");
+  assert.equal(q[1]!.lines[0]!.speaker, "B");
+});
+
+test("series: season-navigation header is not emitted as a quote", () => {
+  const wt = `
+:'''Seasons''' [[X (season 1)|1]] [[X (season 2)|2]] [[X (season 3)|3]] | [[X|Main]]
+----
+:'''Hank''': You got one part of that wrong. This is not meth.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Hank");
+  assert.ok(!JSON.stringify(q).toLowerCase().includes("season"));
+});
+
+test("series: hub/index page (no quotes) yields nothing", () => {
+  const wt = `
+{{italic title}}
+'''''[[w:Friends|Friends]]''''' (1994–2004) was a sitcom.
+== Seasons ==
+::[[Friends (season 1)|Season 1]]
+::[[Friends (season 2)|Season 2]]
+== Cast ==
+* Jennifer Aniston
+== External links ==
+* [https://x site]
+`;
+  assert.deepEqual(parseWikiquote(wt), []);
+});

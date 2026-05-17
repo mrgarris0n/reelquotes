@@ -104,8 +104,8 @@ function classify(heading: string): Section["kind"] {
 function splitSections(wikitext: string): Section[] {
   const lines = wikitext.split(/\r?\n/);
   const sections: Section[] = [];
-  // Implicit lead section so a page that opens straight into a Quotes list
-  // (no level-2 heading) still gets scanned.
+  // Implicit lead section so a page that opens straight into quotes
+  // (no level-2 heading — common on series season subpages) still gets scanned.
   let current: Section = { heading: "", kind: "character", body: [] };
   for (const line of lines) {
     const h2 = line.match(/^==\s*([^=].*?)\s*==\s*$/);
@@ -115,24 +115,59 @@ function splitSections(wikitext: string): Section[] {
       current = { heading, kind: classify(heading), body: [] };
       continue;
     }
-    // Drop level-3+ heading lines; their grouping is cosmetic for our purposes.
-    if (/^===+\s*[^=].*?\s*===+\s*$/.test(line)) continue;
+    // Level-3+ headings (e.g. per-episode `=== ''Pilot'' [1.01] ===` on
+    // season subpages) don't change the section but DO separate quotes —
+    // turn them into a block boundary the section parser understands.
+    if (/^===+\s*[^=].*?\s*===+\s*$/.test(line)) {
+      current.body.push("----");
+      continue;
+    }
     current.body.push(line);
   }
   sections.push(current);
   return sections;
 }
 
-// --- per-section parsers ----------------------------------------------------
+// --- unified section parser -------------------------------------------------
 
-function parseCharacterSection(s: Section, quotes: Quote[]): void {
-  const speaker = s.heading || "";
-  let buffer: string[] = [];
+// A real speaker line always has a colon delimiting speaker from utterance —
+// either after the closing `'''` (`:'''Walter''': text`, `'''Brody''': text`)
+// or inside it (`'''Neo:''' text`). Intro prose like `'''The Matrix''' is a
+// 1999 film.` has no such colon and must NOT match.
+const DL_COLON_AFTER_RE = /^\s*[:*]*\s*'''\s*([^'\n]+?)\s*'''\s*:\s*(.*)$/;
+const DL_COLON_IN_RE = /^\s*[:*]*\s*'''\s*([^'\n]+?)\s*:\s*'''\s*(.*)$/;
+const DL_SEMICOLON_RE = /^\s*;\s*([^:]+?)\s*:\s*(.*)$/;
+const SEPARATOR_RE = /^\s*(?:----+|<hr\b[^>]*>)\s*$/i;
+// Series subpages open with a season-navigation header that looks like a
+// speaker line: `:'''Season''' [[Show (season 1)|1]] … | [[Show|Main]]`.
+const NAV_SPEAKER_RE = /^seasons?$/i;
 
-  const flush = () => {
-    if (buffer.length === 0) return;
-    const raw = buffer.join(" ");
-    buffer = [];
+function matchSpeaker(line: string): RegExpMatchArray | null {
+  return (
+    line.match(DL_COLON_AFTER_RE) ??
+    line.match(DL_COLON_IN_RE) ??
+    line.match(DL_SEMICOLON_RE)
+  );
+}
+
+/**
+ * Handles both Wikiquote quote layouts within one pass:
+ *   - `* bullet` solo quotes (films' per-character sections), attributed to
+ *     the section heading, with inline `'''A:''' … '''B:''' …` promotion.
+ *   - `:'''Speaker''': line` definition-list dialogue (films' Dialogue
+ *     sections AND series season-subpage episodes), grouped into blocks.
+ * Blocks/quotes are separated by `----`, `<hr>`, blank lines, level-3
+ * headings (converted to `----` upstream), or a mode switch.
+ */
+function parseSection(s: Section, quotes: Quote[]): void {
+  const heading = s.heading || "";
+  let solo: string[] = [];
+  let block: QuoteLine[] = [];
+
+  const flushSolo = () => {
+    if (solo.length === 0) return;
+    const raw = solo.join(" ");
+    solo = [];
     const inline = splitInlineSpeakers(raw);
     if (inline) {
       const lines = inline.filter((l) => l.text);
@@ -142,62 +177,72 @@ function parseCharacterSection(s: Section, quotes: Quote[]): void {
       return;
     }
     const text = stripMarkup(raw);
-    if (usable(text)) quotes.push({ lines: [{ speaker, text }] });
+    if (usable(text)) quotes.push({ lines: [{ speaker: heading, text }] });
   };
 
-  for (const line of s.body) {
-    const bullet = line.match(/^\*+\s+(.*)$/);
-    if (bullet) {
-      flush();
-      buffer.push(bullet[1]!);
-      continue;
-    }
-    // `:`-indented or `**` continuation of the current bullet.
-    const cont = line.match(/^(?::+|\*+:+|\*\*+)\s*(.*)$/);
-    if (cont && buffer.length > 0) {
-      if (cont[1]!.trim()) buffer.push(cont[1]!);
-      continue;
-    }
-    if (line.trim() === "") flush();
-  }
-  flush();
-}
-
-const DL_SPEAKER_RE = /^\s*(?::+\s*)?(?:\*+\s*)?'''\s*([^'\n]+?)\s*'''\s*:?\s*(.*)$/;
-const DL_SEMICOLON_RE = /^\s*;\s*([^:]+?)\s*:\s*(.*)$/;
-
-function parseDialogueSection(s: Section, quotes: Quote[]): void {
-  let block: QuoteLine[] = [];
-
-  const flush = () => {
+  const flushBlock = () => {
     const lines = block.filter((l) => l.text);
     block = [];
     if (lines.length === 0) return;
-    if (lines.reduce((a, l) => a + l.text.length, 0) < MIN_QUOTE_CHARS) return;
-    quotes.push({ lines });
+    if (lines.length === 1) {
+      // A lone speaker line is really a solo quote.
+      const only = lines[0]!;
+      if (usable(only.text)) quotes.push({ lines: [only] });
+      return;
+    }
+    if (lines.reduce((a, l) => a + l.text.length, 0) >= MIN_QUOTE_CHARS) {
+      quotes.push({ lines });
+    }
+  };
+
+  const flushAll = () => {
+    flushSolo();
+    flushBlock();
   };
 
   for (const line of s.body) {
-    if (/^----+\s*$/.test(line)) {
-      flush();
+    if (SEPARATOR_RE.test(line) || line.trim() === "") {
+      flushAll();
       continue;
     }
-    const m = line.match(DL_SPEAKER_RE) ?? line.match(DL_SEMICOLON_RE);
-    if (m) {
-      const speaker = stripMarkup(m[1]!).replace(/:$/, "").trim();
-      const text = stripMarkup(m[2]!);
+
+    const bullet = line.match(/^\*+\s+(.*)$/);
+    if (bullet) {
+      // Bullets are solo-mode; a bullet ends any dialogue block and any
+      // previous bullet.
+      flushBlock();
+      flushSolo();
+      solo.push(bullet[1]!);
+      continue;
+    }
+
+    const dl = matchSpeaker(line);
+    if (dl) {
+      // A speaker line ends any solo bullet (mode switch to dialogue).
+      flushSolo();
+      const speaker = stripMarkup(dl[1]!).replace(/:$/, "").trim();
+      if (NAV_SPEAKER_RE.test(speaker)) {
+        flushBlock(); // season-nav header — not dialogue
+        continue;
+      }
+      const text = stripMarkup(dl[2]!);
       block.push({ speaker, text });
       continue;
     }
-    // Continuation of the previous speaker's line.
+
+    // Continuation line: append to whichever quote is open.
     const trimmed = line.trim();
-    if (trimmed && block.length > 0) {
+    if (!trimmed) continue;
+    if (block.length > 0) {
       const last = block[block.length - 1]!;
       const extra = stripMarkup(trimmed.replace(/^[:*]+\s*/, ""));
       if (extra) last.text = `${last.text} ${extra}`.trim();
+    } else if (solo.length > 0) {
+      const cont = line.match(/^(?::+|\*+:+|\*\*+)\s*(.*)$/);
+      if (cont && cont[1]!.trim()) solo.push(cont[1]!);
     }
   }
-  flush();
+  flushAll();
 }
 
 /**
@@ -209,8 +254,7 @@ export function parseWikiquote(wikitext: string): Quote[] {
   const quotes: Quote[] = [];
   for (const section of splitSections(wikitext)) {
     if (section.kind === "skip") continue;
-    if (section.kind === "dialogue") parseDialogueSection(section, quotes);
-    else parseCharacterSection(section, quotes);
+    parseSection(section, quotes);
   }
   return quotes;
 }
