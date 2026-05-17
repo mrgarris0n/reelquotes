@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Filters, Movie, PopularityTier } from "./types";
+import type { Filters, Movie } from "./types";
 
-const DEFAULT_TIERS: PopularityTier[] = ["iconic", "popular"];
 const MOVIES_PATH = path.join(process.cwd(), "data", "movies.json");
 
 let cached: Movie[] | null = null;
@@ -24,13 +23,13 @@ export function listTitles(): { title: string; year: number }[] {
 
 export function pickRandom(filters: Filters = {}): Movie {
   const all = loadPool();
-  const tiers = filters.tiers && filters.tiers.length > 0 ? filters.tiers : DEFAULT_TIERS;
   const decades = filters.decades && filters.decades.length > 0 ? filters.decades : null;
   const genres = filters.genres && filters.genres.length > 0 ? filters.genres : null;
+  const kinds = filters.kinds && filters.kinds.length > 0 ? filters.kinds : null;
 
   const filtered = all.filter((m) => {
-    if (!tiers.includes(m.tier)) return false;
     if (decades && !decades.includes(m.decade)) return false;
+    if (kinds && !kinds.includes(m.kind ?? "movie")) return false;
     if (genres) {
       const movieGenres = m.genres ?? [];
       if (!genres.some((g) => movieGenres.includes(g))) return false;

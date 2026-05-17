@@ -26,13 +26,17 @@ Notice
 ------
 
 This repository was authored with substantial AI assistance (Anthropic Claude).
-The MIT license above covers the source code, project configuration, and the
-generated movie pool index (`data/movies.json`, which is derived from IMDb's
-publicly available, non-commercial TSV datasets at https://datasets.imdbws.com/).
+The MIT license above covers the source code and project configuration.
 
-It does NOT grant any rights to the contents of `data/quotes.json`. Those
-quotes were scraped from IMDb and remain the intellectual property of their
-respective rights-holders; they are bundled here for non-commercial use only.
-Forks intending public or commercial deployment must obtain quote content from
-a source they have rights to (e.g. Wikiquote under CC-BY-SA) or regenerate
-locally for personal use.
+Bundled data has its own provenance and licensing — see ATTRIBUTION.md:
+
+- `data/movies.json` is generated from Wikidata, which is CC0 (public
+  domain). The MIT grant covers our compiled index of it.
+- `data/quotes.json` is generated from English Wikiquote and remains
+  licensed under CC BY-SA. The MIT license does NOT relicense it; anyone
+  redistributing that file must comply with CC BY-SA (attribution +
+  ShareAlike, as documented in ATTRIBUTION.md).
+
+No IMDb data is scraped or redistributed. IMDb identifiers in
+`data/movies.json` are used only to build outbound links to public IMDb
+pages.

@@ -11,6 +11,20 @@ A movie-quote guessing game. The player sees a quote from a random movie and has
 - **Vercel BotID** protecting leaderboard submissions
 - **Vercel Web Analytics** for traffic metrics
 
+## Data sources
+
+The bundled database is built from two openly-licensed sources — **no IMDb
+scraping** (see [`ATTRIBUTION.md`](./ATTRIBUTION.md)):
+
+- **Movie index** — [Wikidata](https://www.wikidata.org/) via SPARQL (CC0).
+  Films that have an English Wikiquote page + an IMDb id + a publication
+  date. "Has a curated Wikiquote page" is itself the quality filter.
+- **Quotes** — [English Wikiquote](https://en.wikiquote.org/) via the
+  MediaWiki API (CC BY-SA). Parsed by `lib/wikiquote-parse.ts`.
+
+IMDb ids are stored only to build the post-round outbound link to the
+film's public IMDb page; no IMDb content is fetched at build or run time.
+
 ## Quickstart
 
 ```bash
@@ -120,12 +134,12 @@ Known soft-spots (intentional trade-offs, not bugs):
 npm run refresh   # = build:pool + build:quotes
 ```
 
-- `build:pool` downloads IMDb's TSV dumps from <https://datasets.imdbws.com/>, joins `title.basics` × `title.ratings`, filters to movies with `numVotes ≥ 5000` and a valid decade/tier, captures genres, and writes the raw pool to `data/movies.json`.
-- `build:quotes` reads that pool, scrapes quotes from IMDb's GraphQL endpoint for the `iconic` + `popular` tiers, drops movies with fewer than 5 usable quotes, caps each remaining movie at 20 quotes, and overwrites `data/movies.json` to only those movies plus writes `data/quotes.json` keyed by IMDb id.
+- `build:pool` runs one SPARQL query against Wikidata for films with an English Wikiquote page + IMDb id + publication date, maps Wikidata genres onto the 15-name allowlist, derives the decade, and writes `data/movies.json`.
+- `build:quotes` reads that pool, fetches each film's Wikiquote page wikitext via the MediaWiki API (concurrency 2, 250 ms inter-request delay, descriptive User-Agent), runs `lib/wikiquote-parse`, drops movies with fewer than 5 usable quotes, caps each at 20, and rewrites `data/movies.json` to only the movies that have quotes.
 
-The scrape is resumable — re-running skips movies already present in `data/quotes.json`. Expect ~25 minutes for a full run at concurrency 4.
+The scrape is resumable — re-running skips ids already present in `data/quotes.json`. **Delete `data/quotes.json` first if you changed the source**, otherwise stale entries are kept. Expect ~40 minutes for a full run.
 
-After refreshing, commit `data/movies.json` and `data/quotes.json` and push. The current bundled DB is ~2,600 movies (iconic + popular tiers).
+After refreshing, commit `data/movies.json` and `data/quotes.json` and push. ~5,100 films enter the pool; roughly 60% survive the ≥5-quote filter.
 
 ## Logo recolor
 
@@ -161,13 +175,14 @@ One-time Vercel project setup:
 ## TypeScript / tooling
 
 - `strict: true` + `noUncheckedIndexedAccess: true` in `tsconfig.json`. Run `npm run typecheck` to verify.
-- Type-only checks (no formal test suite yet). Candidate areas for future tests: `lib/matcher` (`matches` / `matchesExact` / `buildAcceptableTitles`), `lib/hints` (`maskTitle`), and the scoring math inside `/api/round/guess`.
+- `npm test` runs the `lib/wikiquote-parse` suite (`node:test`). Further test candidates: `lib/matcher` (`matches` / `matchesExact` / `buildAcceptableTitles`), `lib/hints` (`maskTitle`), scoring math in `/api/round/guess`.
 
 ## Caveats
 
-- IMDb has no public quotes API. The build script scrapes their GraphQL endpoint with a browser user-agent — pragmatic, but fragile (they can change the contract any release) and arguably outside their ToS. The deployed app makes zero IMDb calls at runtime, so the risk is confined to refresh time.
-- The bundled DB only covers `iconic` + `popular` tiers (≥100k IMDb votes), ~2,600 movies. Selecting filters that yield zero matches surfaces a clear error.
+- Wikiquote coverage is curated, not exhaustive — only films notable enough to have a maintained quote page are in the pool (~5,100 candidates, ~60% pass the ≥5-quote filter). This skews toward recognizable titles, which suits a guessing game.
+- The parser handles the common Wikiquote layouts but the wikitext is community-edited and inconsistent; some pages yield fewer quotes than they visually contain. The pool is the source of truth, not raw page counts.
+- Same-title collisions (e.g. remakes) are disambiguated in the combobox by year; the fuzzy matcher's known soft-spot on subtitles is unchanged.
 
 ## License
 
-Source code licensed under the **MIT License** — see [`LICENSE`](./LICENSE). The license intentionally does *not* extend to `data/quotes.json`, which contains material scraped from IMDb and remains the IP of its rights-holders (bundled here for personal/non-commercial use only).
+Application source code is under the **MIT License** — see [`LICENSE`](./LICENSE). Bundled data is separate: `data/movies.json` derives from Wikidata (CC0); `data/quotes.json` derives from English Wikiquote and remains under **CC BY-SA** — redistribution must preserve attribution and ShareAlike. Full provenance in [`ATTRIBUTION.md`](./ATTRIBUTION.md).

@@ -1,4 +1,4 @@
-export type PopularityTier = "iconic" | "popular" | "known" | "niche";
+export type Kind = "movie" | "series";
 
 export type Decade =
   | "1950s"
@@ -46,12 +46,13 @@ export const ALL_GENRES: Genre[] = [
 ];
 
 export interface Movie {
-  id: string;
+  id: string; // IMDb id (P345) — used only to build the post-round deep link
   title: string;
   year: number;
   decade: Decade;
-  tier: PopularityTier;
+  kind: Kind;
   genres: Genre[];
+  wqTitle: string; // English Wikiquote page title — quote source + attribution
 }
 
 export interface QuoteLine {
@@ -65,8 +66,8 @@ export interface Quote {
 
 export interface Filters {
   decades?: Decade[];
-  tiers?: PopularityTier[];
   genres?: Genre[];
+  kinds?: Kind[];
 }
 
 export type RoundStatus = "active" | "won" | "lost";

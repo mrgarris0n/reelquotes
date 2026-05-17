@@ -1,59 +1,52 @@
 /**
- * One-off script: download IMDb TSV datasets, filter, write data/movies.json.
- * Run with: npm run build:pool
+ * Build data/movies.json from Wikidata (CC0).
  *
- * IMDb publishes free non-commercial dumps at https://datasets.imdbws.com/
- *  - title.basics.tsv.gz   tconst | titleType | primaryTitle | originalTitle | isAdult | startYear | endYear | runtimeMinutes | genres
- *  - title.ratings.tsv.gz  tconst | averageRating | numVotes
+ * Selects films that have an English Wikiquote page, an IMDb id (for the
+ * post-round deep link only), and a publication date. "Has a curated
+ * Wikiquote page" is itself the quality filter — it replaces the old
+ * IMDb vote-count tiers. No IMDb access.
+ *
+ * Run with: npm run build:pool
  */
 
-import { createReadStream, createWriteStream, existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
-import { pipeline } from "node:stream/promises";
-import { createGunzip } from "node:zlib";
-import readline from "node:readline";
+import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { ALL_GENRES, type Decade, type Genre, type Movie, type PopularityTier } from "../lib/types";
+import type { Decade, Genre, Kind, Movie } from "../lib/types";
 
-const KNOWN_GENRES = new Set<string>(ALL_GENRES);
-
-const TMP = path.join(process.cwd(), ".cache", "imdb-tsv");
 const OUT = path.join(process.cwd(), "data", "movies.json");
+const SPARQL = "https://query.wikidata.org/sparql";
+const UA =
+  "ReelQuotes/1.0 (https://github.com/mrgarris0n/reelquotes) build-pool";
 
-const MIN_VOTES = 5000;
+// Wikidata QIDs for the title kinds we accept.
+const FILM = "wd:Q11424";
 
-const URLS = {
-  basics: "https://datasets.imdbws.com/title.basics.tsv.gz",
-  ratings: "https://datasets.imdbws.com/title.ratings.tsv.gz",
-};
+const GENRE_MAP: [RegExp, Genre][] = [
+  [/sci(ence)?[- ]?fi|science fiction/i, "Sci-Fi"],
+  [/animat/i, "Animation"],
+  [/romanc|romantic/i, "Romance"],
+  [/comedy/i, "Comedy"],
+  [/action/i, "Action"],
+  [/adventure/i, "Adventure"],
+  [/thriller/i, "Thriller"],
+  [/horror/i, "Horror"],
+  [/crime/i, "Crime"],
+  [/myster/i, "Mystery"],
+  [/fantasy/i, "Fantasy"],
+  [/western/i, "Western"],
+  [/\bwar\b/i, "War"],
+  [/family|children/i, "Family"],
+  [/drama/i, "Drama"],
+];
 
-async function download(url: string, dest: string): Promise<void> {
-  if (existsSync(dest)) return;
-  console.log(`Downloading ${url}`);
-  const res = await fetch(url);
-  if (!res.ok || !res.body) throw new Error(`Failed to download ${url}: ${res.status}`);
-  await pipeline(res.body as unknown as NodeJS.ReadableStream, createWriteStream(dest));
-}
-
-async function* tsvLines(file: string): AsyncGenerator<string[]> {
-  const stream = createReadStream(file).pipe(createGunzip());
-  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-  let header = true;
-  for await (const line of rl) {
-    if (header) {
-      header = false;
-      continue;
+function mapGenres(labels: string[]): Genre[] {
+  const out = new Set<Genre>();
+  for (const label of labels) {
+    for (const [re, g] of GENRE_MAP) {
+      if (re.test(label)) out.add(g);
     }
-    yield line.split("\t");
   }
-}
-
-function tierFor(votes: number): PopularityTier | null {
-  if (votes >= 500_000) return "iconic";
-  if (votes >= 100_000) return "popular";
-  if (votes >= 25_000) return "known";
-  if (votes >= MIN_VOTES) return "niche";
-  return null;
+  return [...out];
 }
 
 function decadeFor(year: number): Decade | null {
@@ -68,54 +61,67 @@ function decadeFor(year: number): Decade | null {
   return null;
 }
 
-async function main(): Promise<void> {
-  await mkdir(TMP, { recursive: true });
-  await mkdir(path.dirname(OUT), { recursive: true });
+interface Row {
+  title: { value: string };
+  year: { value: string };
+  imdb: { value: string };
+  wq: { value: string };
+  genres: { value: string };
+}
 
-  const basicsGz = path.join(TMP, "title.basics.tsv.gz");
-  const ratingsGz = path.join(TMP, "title.ratings.tsv.gz");
-  await download(URLS.basics, basicsGz);
-  await download(URLS.ratings, ratingsGz);
-
-  console.log("Reading ratings...");
-  const ratings = new Map<string, number>(); // tconst -> numVotes
-  for await (const cols of tsvLines(ratingsGz)) {
-    const tconst = cols[0];
-    const numVotes = cols[2];
-    if (!tconst || !numVotes) continue;
-    const votes = Number(numVotes);
-    if (votes >= MIN_VOTES) ratings.set(tconst, votes);
+async function runSparql(query: string): Promise<Row[]> {
+  const res = await fetch(`${SPARQL}?format=json&query=${encodeURIComponent(query)}`, {
+    headers: { "User-Agent": UA, Accept: "application/sparql-results+json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Wikidata SPARQL ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
+  const json = (await res.json()) as { results: { bindings: Row[] } };
+  return json.results.bindings;
+}
 
-  console.log(`Filtering basics (${ratings.size} candidate ids)...`);
+const QUERY = `
+SELECT ?title (SAMPLE(?yr) AS ?year) (SAMPLE(?im) AS ?imdb) ?wq
+       (GROUP_CONCAT(DISTINCT ?gl; SEPARATOR="|") AS ?genres) WHERE {
+  ?item wdt:P31 ${FILM} ;
+        wdt:P345 ?im ;
+        wdt:P577 ?pub ;
+        rdfs:label ?title .
+  FILTER(LANG(?title) = "en")
+  BIND(YEAR(?pub) AS ?yr)
+  ?sl schema:about ?item ;
+      schema:isPartOf <https://en.wikiquote.org/> ;
+      schema:name ?wq .
+  OPTIONAL { ?item wdt:P136 ?g . ?g rdfs:label ?gl . FILTER(LANG(?gl) = "en") }
+}
+GROUP BY ?title ?wq
+`;
+
+async function main(): Promise<void> {
+  await mkdir(path.dirname(OUT), { recursive: true });
+  console.log("Querying Wikidata for films with English Wikiquote pages...");
+  const rows = await runSparql(QUERY);
+  console.log(`Wikidata returned ${rows.length} rows`);
+
+  const seen = new Set<string>();
   const movies: Movie[] = [];
-  for await (const cols of tsvLines(basicsGz)) {
-    const tconst = cols[0];
-    const titleType = cols[1];
-    const primaryTitle = cols[2];
-    const isAdult = cols[4];
-    const startYear = cols[5];
-    const genresRaw = cols[8]; // title.basics col index 8
-    if (!tconst || !primaryTitle) continue;
-    if (titleType !== "movie") continue;
-    if (isAdult === "1") continue;
-    const votes = ratings.get(tconst);
-    if (votes === undefined) continue;
-    const year = Number(startYear);
+  for (const r of rows) {
+    const wqTitle = r.wq?.value;
+    const imdb = r.imdb?.value;
+    const title = r.title?.value;
+    if (!wqTitle || !imdb || !title) continue;
+    if (seen.has(wqTitle)) continue; // first publication-year wins
+    const year = Number(r.year?.value);
     if (!Number.isFinite(year)) continue;
     const decade = decadeFor(year);
     if (!decade) continue;
-    const tier = tierFor(votes);
-    if (!tier) continue;
-    const genres: Genre[] =
-      genresRaw && genresRaw !== "\\N"
-        ? (genresRaw.split(",").filter((g) => KNOWN_GENRES.has(g)) as Genre[])
-        : [];
-    movies.push({ id: tconst, title: primaryTitle, year, decade, tier, genres });
+    seen.add(wqTitle);
+    const genres = mapGenres((r.genres?.value ?? "").split("|").filter(Boolean));
+    const kind: Kind = "movie";
+    movies.push({ id: imdb, title, year, decade, kind, genres, wqTitle });
   }
 
-  movies.sort((a, b) => (ratings.get(b.id) ?? 0) - (ratings.get(a.id) ?? 0));
-
+  movies.sort((a, b) => a.title.localeCompare(b.title));
   await writeFile(OUT, JSON.stringify(movies));
   console.log(`Wrote ${movies.length} movies to ${OUT}`);
 }

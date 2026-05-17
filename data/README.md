@@ -1,9 +1,9 @@
 # Data
 
-Both files in this directory are generated and committed (the deployed app reads them at runtime; no scraping happens in production).
+Both files are generated and committed (the deployed app reads them at runtime; nothing is fetched in production). Provenance and licensing: see [`../ATTRIBUTION.md`](../ATTRIBUTION.md).
 
-- **`movies.json`** — `Movie[]` (see `lib/types.ts`). Each entry: `{ id, title, year, decade, tier, genres }`. Only includes movies for which `quotes.json` has at least 5 usable quotes. Sorted by IMDb vote count (most popular first), which biases random picks toward better-known titles.
-- **`quotes.json`** — `{ [imdbId]: Quote[] }`. Up to 20 quotes per movie. Character names are stored verbatim; anonymization happens at request time in `lib/scraper.ts` (skipped in easy difficulty).
+- **`movies.json`** — `Movie[]` (see `lib/types.ts`): `{ id, title, year, decade, kind, genres, wqTitle }`. `id` is the IMDb id (used only for the post-round outbound link). `wqTitle` is the English Wikiquote page the quotes came from (attribution). Only includes movies with ≥5 usable quotes. Sourced from **Wikidata (CC0)**.
+- **`quotes.json`** — `{ [imdbId]: Quote[] }`, ≤20 quotes per movie. Speaker names stored verbatim; anonymized at request time in `lib/scraper.ts` (skipped on easy difficulty). Sourced from **English Wikiquote (CC BY-SA)**.
 
 ## Regenerating
 
@@ -11,9 +11,9 @@ Both files in this directory are generated and committed (the deployed app reads
 npm run refresh   # = build:pool + build:quotes
 ```
 
-- **`build:pool`** (`scripts/build-pool.ts`) downloads IMDb's TSV dumps from <https://datasets.imdbws.com/>, joins `title.basics` × `title.ratings`, keeps `titleType === "movie"` with `numVotes ≥ 5000` and a recognized decade/tier, extracts the genre list, and writes the unfiltered pool to `movies.json`. ~18k entries.
-- **`build:quotes`** (`scripts/build-quotes.ts`) reads `movies.json`, scrapes quotes from IMDb's GraphQL endpoint for the `iconic` + `popular` tiers (concurrency 4), drops movies with <5 usable quotes, caps each remaining movie at 20 quotes (random sample), and overwrites `movies.json` to only those movies. Writes incremental checkpoints to `quotes.json` every 50 movies. The full run takes ~25 minutes; re-running is resumable (skips any IMDb id already in `quotes.json`).
+- **`build:pool`** (`scripts/build-pool.ts`) — one SPARQL query to `query.wikidata.org`: films (`wdt:P31 wd:Q11424`) that have an English Wikiquote sitelink, an IMDb id (`P345`), and a publication date (`P577`); genres (`P136`) mapped onto the 15-name allowlist; decade derived from the year. Writes ~5,100 entries to `movies.json`. Fast (~1 query).
+- **`build:quotes`** (`scripts/build-quotes.ts`) — for each `wqTitle`, fetches page wikitext via the Wikiquote MediaWiki API, parses with `lib/wikiquote-parse`, drops <5-quote movies, caps at 20 (random sample), checkpoints every 50, and rewrites `movies.json` to only movies with quotes. Concurrency 2, 250 ms inter-request delay, descriptive User-Agent (Wikimedia etiquette). ~40 min; resumable (skips ids already in `quotes.json`).
 
-Current snapshot: ~2,600 movies, ~16 MB `quotes.json`.
+> **If you change the quote source**, delete `data/quotes.json` before re-running `build:quotes` — the resume check keys on IMDb id and would otherwise keep stale entries from the previous source.
 
 After refreshing, commit both files and push — Vercel rebuilds with the new bundle.
