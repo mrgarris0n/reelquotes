@@ -1,6 +1,6 @@
 # ReelQuotes
 
-A movie-quote guessing game. The player sees a quote from a random movie and has to identify the title. Five quotes per round; empty/wrong guesses advance to the next quote; running out of quotes ends the game. Live at <https://reelquotes.vercel.app>.
+A quote-guessing game for movies and TV series. The player sees a quote from a random title and has to identify it. Five quotes per round; empty/wrong guesses advance to the next quote; running out of quotes ends the game. Live at <https://reelquotes.vercel.app>.
 
 ## Stack
 
@@ -16,14 +16,16 @@ A movie-quote guessing game. The player sees a quote from a random movie and has
 The bundled database is built from two openly-licensed sources — **no IMDb
 scraping** (see [`ATTRIBUTION.md`](./ATTRIBUTION.md)):
 
-- **Movie index** — [Wikidata](https://www.wikidata.org/) via SPARQL (CC0).
-  Films that have an English Wikiquote page + an IMDb id + a publication
-  date. "Has a curated Wikiquote page" is itself the quality filter.
+- **Title index** — [Wikidata](https://www.wikidata.org/) via SPARQL (CC0).
+  Films *and* TV series that have an English Wikiquote page + an IMDb id +
+  a date. "Has a curated Wikiquote page" is itself the quality filter.
 - **Quotes** — [English Wikiquote](https://en.wikiquote.org/) via the
-  MediaWiki API (CC BY-SA). Parsed by `lib/wikiquote-parse.ts`.
+  MediaWiki API (CC BY-SA). Parsed by `lib/wikiquote-parse.ts`. Series are
+  hub-and-spoke: `build:quotes` follows `Show (season N)` / `Show/Season N`
+  subpage links and aggregates.
 
 IMDb ids are stored only to build the post-round outbound link to the
-film's public IMDb page; no IMDb content is fetched at build or run time.
+title's public IMDb page; no IMDb content is fetched at build or run time.
 
 ## Quickstart
 
@@ -36,7 +38,7 @@ Open <http://localhost:3000>. The repo ships with a pre-built quote database, so
 
 ## How to play
 
-1. Pick decade(s), genre(s), and a difficulty on the setup screen. Era and genre default to "any".
+1. Pick type (Movies / TV series), decade(s), genre(s), and a difficulty on the setup screen. Type, era, and genre default to "any".
 2. Type a title or pick one from the autocompleting dropdown. Empty input or the Skip button advances to the next quote.
 3. **Scoring** — `5/4/3/2/1` points by quote index (round-win pays based on which quote you guessed on).
 4. **Streak bonus** — if you guess on quote 1 in consecutive rounds *with no hints used*, each streak step beyond the first adds `+1` (capped at `+5`). Any hint, wrong guess, or guess on quote 2+ resets the streak.
@@ -134,12 +136,12 @@ Known soft-spots (intentional trade-offs, not bugs):
 npm run refresh   # = build:pool + build:quotes
 ```
 
-- `build:pool` runs one SPARQL query against Wikidata for films with an English Wikiquote page + IMDb id + publication date, maps Wikidata genres onto the 15-name allowlist, derives the decade, and writes `data/movies.json`.
-- `build:quotes` reads that pool, fetches each film's Wikiquote page wikitext via the MediaWiki API (concurrency 2, 250 ms inter-request delay, descriptive User-Agent), runs `lib/wikiquote-parse`, drops movies with fewer than 5 usable quotes, caps each at 20, and rewrites `data/movies.json` to only the movies that have quotes.
+- `build:pool` runs two SPARQL queries against Wikidata — films (date from `P577`) and TV series (date from `P577` or `P580`), each restricted to titles with an English Wikiquote page + IMDb id. Maps Wikidata genres onto the 15-name allowlist, derives the decade, tags `kind`, writes `data/movies.json`. (Two narrow queries because the union exceeds Wikidata's 60s limit.)
+- `build:quotes` reads that pool and, per title, fetches Wikiquote wikitext via the MediaWiki API (concurrency 2, 250 ms delay, descriptive User-Agent), parses with `lib/wikiquote-parse`. For series whose main page is a thin hub, it follows `Show (season N)` / `Show/Season N` subpage links (root-aware: `Friends (TV series)` → `Friends (season N)`) and aggregates. Drops titles with < 5 usable quotes, caps each at 20, rewrites `data/movies.json` to only titles with quotes.
 
 The scrape is resumable — re-running skips ids already present in `data/quotes.json`. **Delete `data/quotes.json` first if you changed the source**, otherwise stale entries are kept. Expect ~40 minutes for a full run.
 
-After refreshing, commit `data/movies.json` and `data/quotes.json` and push. ~5,100 films enter the pool; roughly 60% survive the ≥5-quote filter.
+After refreshing, commit `data/movies.json` and `data/quotes.json` and push. ~5,100 films + ~1,300 series enter the pool; roughly 55–60% survive the ≥5-quote filter.
 
 ## Logo recolor
 
@@ -179,7 +181,7 @@ One-time Vercel project setup:
 
 ## Caveats
 
-- Wikiquote coverage is curated, not exhaustive — only films notable enough to have a maintained quote page are in the pool (~5,100 candidates, ~60% pass the ≥5-quote filter). This skews toward recognizable titles, which suits a guessing game.
+- Wikiquote coverage is curated, not exhaustive — only films/series notable enough to have a maintained quote page are in the pool (~6,400 candidates, ~55–60% pass the ≥5-quote filter). Skews toward recognizable titles, which suits a guessing game. Series `decade` is the start year (lossy for long runners; cosmetic). A few series link their seasons via a navigation *template* rather than plain wikilinks — those expand only in rendered HTML, so the hub-follower misses them and the series is dropped.
 - The parser handles the common Wikiquote layouts but the wikitext is community-edited and inconsistent; some pages yield fewer quotes than they visually contain. The pool is the source of truth, not raw page counts.
 - Same-title collisions (e.g. remakes) are disambiguated in the combobox by year; the fuzzy matcher's known soft-spot on subtitles is unchanged.
 

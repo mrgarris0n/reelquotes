@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import pkg from "../package.json";
-import { ALL_GENRES, type Decade, type Difficulty, type Filters, type Genre, type HintKind, type Quote } from "@/lib/types";
+import { ALL_GENRES, type Decade, type Difficulty, type Filters, type Genre, type HintKind, type Kind, type Quote } from "@/lib/types";
 import { totalHintCost, type HintsUsed } from "@/lib/hints";
 import { POINTS_PER_QUOTE } from "@/lib/scoring";
 import { NAME_MAX_LEN, sanitizeName } from "@/lib/name";
@@ -21,6 +21,10 @@ interface TitleEntry {
 
 const DECADES: Decade[] = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"];
 const GENRES: Genre[] = ALL_GENRES;
+const KINDS: { id: Kind; label: string }[] = [
+  { id: "movie", label: "Movies" },
+  { id: "series", label: "TV series" },
+];
 
 const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
   { id: "easy", label: "Easy", hint: "Real character names · year shown" },
@@ -106,6 +110,7 @@ export default function Page() {
   const [phase, setPhase] = useState<Phase>({ kind: "setup" });
   const [decades, setDecades] = useState<Decade[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
+  const [kinds, setKinds] = useState<Kind[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
   const [guess, setGuess] = useState("");
   const [score, setScore] = useState(0);
@@ -171,6 +176,7 @@ export default function Page() {
     const f: Filters = {};
     if (decades.length) f.decades = decades;
     if (genres.length) f.genres = genres;
+    if (kinds.length) f.kinds = kinds;
     return f;
   }
 
@@ -546,6 +552,30 @@ export default function Page() {
               </div>
             </div>
           </details>
+
+          <div>
+            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Type</h2>
+            <div className="flex flex-wrap gap-2">
+              {KINDS.map((k) => (
+                <button
+                  key={k.id}
+                  onClick={() => setKinds(toggle(kinds, k.id))}
+                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                    kinds.includes(k.id)
+                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
+                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                  }`}
+                >
+                  {k.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              {kinds.length === 0
+                ? "Movies & TV series"
+                : kinds.map((k) => KINDS.find((x) => x.id === k)?.label).join(", ")}
+            </p>
+          </div>
 
           <div>
             <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Era</h2>
