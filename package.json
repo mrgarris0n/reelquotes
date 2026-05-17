@@ -9,6 +9,7 @@
     "build:pool": "tsx scripts/build-pool.ts",
     "build:quotes": "tsx scripts/build-quotes.ts",
     "refresh": "npm run build:pool && npm run build:quotes",
+    "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
