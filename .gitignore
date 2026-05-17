@@ -7,7 +7,7 @@ dist
 *.tsbuildinfo
 next-env.d.ts
 
-# local IMDb TSV download cache (re-downloaded by build:pool)
+# local scratch (build script intermediates, etc.)
 .cache/
 
 .env
