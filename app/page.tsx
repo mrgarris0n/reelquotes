@@ -193,7 +193,7 @@ export default function Page() {
         setPhase({ kind: "error", message: data.error ?? "Failed to start round" });
         return;
       }
-       if (data.scoreToken) setScoreToken(data.scoreToken);
+      if (data.scoreToken) setScoreToken(data.scoreToken);
       setPhase({
         kind: "playing",
         token: data.token,
@@ -354,23 +354,33 @@ export default function Page() {
   async function buyHint(kind: HintKind) {
     if (phase.kind !== "playing") return;
     if (phase.hintsUsed[kind]) return;
-    const res = await fetch("/api/round/hint", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: phase.token, hint: kind }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setPhase({ kind: "error", message: data.error ?? "Hint failed" });
-      return;
+    if (actionInFlight) return;
+    setActionInFlight(true);
+    let res: Response;
+    try {
+      res = await fetch("/api/round/hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: phase.token, hint: kind }),
+      });
+    } finally {
+      setActionInFlight(false);
     }
-    setPhase({
-      ...phase,
-      token: data.token,
-      year: data.year ?? phase.year,
-      genres: data.genres ?? phase.genres,
-      titleMask: data.titleMask ?? phase.titleMask,
-      hintsUsed: { ...phase.hintsUsed, [kind]: true },
+    const data = await res.json();
+    // Use the functional setState form so a hint that resolves while another
+    // request was in flight still merges into the *latest* phase rather than
+    // a stale closure capture.
+    setPhase((p) => {
+      if (p.kind !== "playing") return p;
+      if (!res.ok) return { kind: "error", message: data.error ?? "Hint failed" };
+      return {
+        ...p,
+        token: data.token,
+        year: data.year ?? p.year,
+        genres: data.genres ?? p.genres,
+        titleMask: data.titleMask ?? p.titleMask,
+        hintsUsed: { ...p.hintsUsed, [kind]: true },
+      };
     });
   }
 
@@ -703,7 +713,8 @@ export default function Page() {
                   <button
                     type="button"
                     onClick={() => void buyHint("year")}
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                    disabled={actionInFlight}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Reveal year — 1 pt
                   </button>
@@ -712,7 +723,8 @@ export default function Page() {
                   <button
                     type="button"
                     onClick={() => void buyHint("genre")}
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                    disabled={actionInFlight}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Reveal genre — 1 pt
                   </button>
@@ -721,7 +733,8 @@ export default function Page() {
                   <button
                     type="button"
                     onClick={() => void buyHint("title")}
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+                    disabled={actionInFlight}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Reveal first letters — 2 pts
                   </button>
