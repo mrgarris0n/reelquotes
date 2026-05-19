@@ -794,6 +794,7 @@ export default function Page() {
                 autoFocus
                 autoComplete="off"
                 placeholder="Movie title — or blank to skip"
+                enterKeyHint="go"
                 aria-autocomplete="list"
                 aria-expanded={open && matches.length > 0}
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-base outline-none placeholder:text-zinc-600 focus:border-amber-300 sm:text-lg"
@@ -801,7 +802,7 @@ export default function Page() {
               {open && matches.length > 0 && (
                 <ul
                   role="listbox"
-                  className="absolute left-0 right-0 z-10 mt-1 max-h-72 overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl"
+                  className="absolute bottom-full left-0 right-0 z-10 mb-1 max-h-64 overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl"
                 >
                   {matches.map((m, i) => (
                     <li
