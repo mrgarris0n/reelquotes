@@ -982,21 +982,23 @@ export default function Page() {
                   Up to {NAME_MAX_LEN} letters or digits. No spaces or special characters.
                 </p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   type="text"
                   value={submitName}
                   onChange={(e) => setSubmitName(sanitizeName(e.target.value))}
                   maxLength={NAME_MAX_LEN}
+                  size={NAME_MAX_LEN}
                   pattern="[A-Za-z0-9]+"
                   placeholder="Your name"
+                  enterKeyHint="send"
                   disabled={submitState.kind === "submitting"}
-                  className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base outline-none placeholder:text-zinc-600 focus:border-amber-300"
+                  className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base outline-none placeholder:text-zinc-600 focus:border-amber-300"
                 />
                 <button
                   type="submit"
                   disabled={!submitName.trim() || submitState.kind === "submitting"}
-                  className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+                  className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 sm:shrink-0"
                 >
                   {submitState.kind === "submitting" ? "Submitting…" : "Submit"}
                 </button>
