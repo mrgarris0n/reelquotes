@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseWikiquote, isRedirect, stripMarkup } from "../lib/wikiquote-parse";
+import { parseWikiquote, isRedirect, stripMarkup, trimLongLines } from "../lib/wikiquote-parse";
 
 test("isRedirect detects redirect pages", () => {
   assert.equal(isRedirect("#REDIRECT [[The Matrix (franchise)]]"), true);
@@ -118,7 +118,7 @@ test("level-3 sub-headings are flattened, bullets keep the level-2 speaker", () 
   assert.ok(q.every((x) => x.lines[0]!.speaker === "The Dude"));
 });
 
-test("stage-direction-only bullets are dropped, inline directions kept", () => {
+test("stage-direction-only bullets are dropped, inline directions stripped", () => {
   const wt = `
 == Henry ==
 * [the baby convulses violently]
@@ -126,7 +126,40 @@ test("stage-direction-only bullets are dropped, inline directions kept", () => {
 `;
   const q = parseWikiquote(wt);
   assert.equal(q.length, 1);
-  assert.match(q[0]!.lines[0]!.text, /^\[picking up the phone\] Oh, you are sick/);
+  // Bracketed action removed; only the spoken dialogue remains.
+  assert.equal(q[0]!.lines[0]!.text, "Oh, you are sick! I'll get the doctor.");
+  assert.ok(!/\[picking up the phone\]/.test(q[0]!.lines[0]!.text));
+});
+
+test("stripMarkup removes bracketed stage directions inline and at edges", () => {
+  assert.equal(stripMarkup("[door slams] Get out."), "Get out.");
+  assert.equal(stripMarkup("Hello, [waves hand] friend."), "Hello, friend.");
+  assert.equal(stripMarkup("[a] [b] real text"), "real text");
+  // Wikilink-stripped first, so legitimate `[[X]]` content survives bracket strip.
+  assert.equal(stripMarkup("[[Hamlet]] enters."), "Hamlet enters.");
+});
+
+test("trimLongLines: cuts at the last sentence boundary when one is near", () => {
+  const long =
+    "This is a complete first sentence. " +
+    "This is a complete second sentence with more substance to it. " +
+    "And here is a third sentence padding the line out further to push it past the cap so the trimmer must engage and choose a sensible boundary somewhere earlier in the run.";
+  const out = trimLongLines(long);
+  assert.ok(out.length <= 280);
+  assert.ok(out.endsWith("."));
+  assert.ok(!out.endsWith("…"));
+});
+
+test("trimLongLines: falls back to a word-boundary + ellipsis when no nearby sentence end", () => {
+  const long = "a".repeat(150) + " " + "b".repeat(150); // no punctuation
+  const out = trimLongLines(long);
+  assert.ok(out.length <= 281); // +1 for the ellipsis char
+  assert.ok(out.endsWith("…"));
+});
+
+test("trimLongLines: short lines pass through untouched", () => {
+  const s = "Short line.";
+  assert.equal(trimLongLines(s), s);
 });
 
 test("semicolon-style dialogue speakers are recognized", () => {
@@ -160,7 +193,7 @@ test("real-ish mixed page parses both character and dialogue sections", () => {
 
 == Dialogue ==
 '''Morpheus:''' You take the blue pill, the story ends.
-'''Neo:''' [hesitates for a long moment before answering]
+'''Neo:''' [hesitates] I don't know what to choose.
 
 == External links ==
 * [https://example.com IMDb]

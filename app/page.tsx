@@ -470,9 +470,12 @@ export default function Page() {
       {phase.kind === "setup" && (
         <section className="space-y-8">
           {daily && (
-            <div className="rounded-xl border border-amber-300/30 bg-amber-300/5 p-5">
-              <p className="text-xs uppercase tracking-wider text-amber-300">Quote of the Day</p>
-              <div className="mt-3 font-mono text-sm leading-relaxed text-zinc-100">
+            <details className="group rounded-xl border border-amber-300/30 bg-amber-300/5 p-4 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
+                <span className="text-xs uppercase tracking-wider text-amber-300">Quote of the Day</span>
+                <span className="text-xs text-amber-300/60 transition group-open:rotate-180">▾</span>
+              </summary>
+              <div className="mt-4 font-mono text-sm leading-relaxed text-zinc-100">
                 {daily.quote.lines.map((line, i) => (
                   <p key={i} className="mb-1 last:mb-0">
                     {line.speaker ? (
@@ -495,7 +498,7 @@ export default function Page() {
                   <span className="text-zinc-500">({daily.year})</span>
                 </p>
               </details>
-            </div>
+            </details>
           )}
 
           <details className="group rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-300 [&_summary::-webkit-details-marker]:hidden">

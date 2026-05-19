@@ -50,7 +50,39 @@ export function stripMarkup(input: string): string {
   s = s.replace(/<\/?[a-z][^>]*>/gi, ""); // remaining HTML tags
   for (const [k, v] of Object.entries(ENTITIES)) s = s.split(k).join(v);
   s = s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
+  // Strip bracketed stage directions ([picking up the phone], [exits]) — runs
+  // AFTER the [url …] / [[wikilink]] replacements above so only true asides
+  // remain. Iterate so nested brackets ([outer [inner] outer]) collapse fully.
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(/\[[^[\]]*\]/g, " ");
+  } while (s !== prev);
   return s.replace(/\s+/g, " ").trim();
+}
+
+// Long monologues are hard to read/scroll on mobile. Cap each spoken line at
+// MAX_LINE_CHARS, preferring a sentence-end cut (no ellipsis when the trim
+// happens at a `.` / `!` / `?`) and falling back to a word-boundary cut with
+// "…". Short lines pass through untouched.
+const MAX_LINE_CHARS = 280;
+const MIN_TRIM_CHARS = 80;
+
+export function trimLongLines(text: string): string {
+  if (text.length <= MAX_LINE_CHARS) return text;
+  const window = text.slice(0, MAX_LINE_CHARS);
+  const sentenceEnd = Math.max(
+    window.lastIndexOf(". "),
+    window.lastIndexOf("? "),
+    window.lastIndexOf("! "),
+    window.lastIndexOf("…"),
+  );
+  if (sentenceEnd >= MIN_TRIM_CHARS) {
+    return text.slice(0, sentenceEnd + 1).trim();
+  }
+  const lastSpace = window.lastIndexOf(" ");
+  const cut = lastSpace > MIN_TRIM_CHARS ? lastSpace : MAX_LINE_CHARS;
+  return text.slice(0, cut).trimEnd() + "…";
 }
 
 function isStageDirectionOnly(text: string): boolean {
@@ -164,6 +196,9 @@ function parseSection(s: Section, quotes: Quote[]): void {
   let solo: string[] = [];
   let block: QuoteLine[] = [];
 
+  const trim = (lines: QuoteLine[]): QuoteLine[] =>
+    lines.map((l) => ({ speaker: l.speaker, text: trimLongLines(l.text) }));
+
   const flushSolo = () => {
     if (solo.length === 0) return;
     const raw = solo.join(" ");
@@ -172,12 +207,12 @@ function parseSection(s: Section, quotes: Quote[]): void {
     if (inline) {
       const lines = inline.filter((l) => l.text);
       if (lines.length && lines.reduce((a, l) => a + l.text.length, 0) >= MIN_QUOTE_CHARS) {
-        quotes.push({ lines });
+        quotes.push({ lines: trim(lines) });
       }
       return;
     }
     const text = stripMarkup(raw);
-    if (usable(text)) quotes.push({ lines: [{ speaker: heading, text }] });
+    if (usable(text)) quotes.push({ lines: [{ speaker: heading, text: trimLongLines(text) }] });
   };
 
   const flushBlock = () => {
@@ -187,11 +222,11 @@ function parseSection(s: Section, quotes: Quote[]): void {
     if (lines.length === 1) {
       // A lone speaker line is really a solo quote.
       const only = lines[0]!;
-      if (usable(only.text)) quotes.push({ lines: [only] });
+      if (usable(only.text)) quotes.push({ lines: [{ speaker: only.speaker, text: trimLongLines(only.text) }] });
       return;
     }
     if (lines.reduce((a, l) => a + l.text.length, 0) >= MIN_QUOTE_CHARS) {
-      quotes.push({ lines });
+      quotes.push({ lines: trim(lines) });
     }
   };
 
