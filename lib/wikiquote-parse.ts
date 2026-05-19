@@ -85,6 +85,25 @@ export function trimLongLines(text: string): string {
   return text.slice(0, cut).trimEnd() + "…";
 }
 
+// Wikiquote sometimes packs an entire scene's dialogue into one `----`-less
+// block. Even with per-line trimming, 30+ speaker turns is a wall of text on
+// mobile. Split dialogue quotes into ≤MAX_LINES_PER_QUOTE-line chunks; merge a
+// trailing single-line tail into the previous chunk so we don't ship orphans.
+const MAX_LINES_PER_QUOTE = 6;
+
+export function chunkDialogue(lines: QuoteLine[]): QuoteLine[][] {
+  if (lines.length <= MAX_LINES_PER_QUOTE) return [lines];
+  const chunks: QuoteLine[][] = [];
+  for (let i = 0; i < lines.length; i += MAX_LINES_PER_QUOTE) {
+    chunks.push(lines.slice(i, i + MAX_LINES_PER_QUOTE));
+  }
+  if (chunks.length >= 2 && chunks[chunks.length - 1]!.length === 1) {
+    chunks[chunks.length - 2]!.push(...chunks[chunks.length - 1]!);
+    chunks.pop();
+  }
+  return chunks;
+}
+
 function isStageDirectionOnly(text: string): boolean {
   const t = text.trim();
   return t.startsWith("[") && t.endsWith("]");
@@ -225,8 +244,12 @@ function parseSection(s: Section, quotes: Quote[]): void {
       if (usable(only.text)) quotes.push({ lines: [{ speaker: only.speaker, text: trimLongLines(only.text) }] });
       return;
     }
-    if (lines.reduce((a, l) => a + l.text.length, 0) >= MIN_QUOTE_CHARS) {
-      quotes.push({ lines: trim(lines) });
+    if (lines.reduce((a, l) => a + l.text.length, 0) < MIN_QUOTE_CHARS) return;
+    const trimmed = trim(lines);
+    for (const chunk of chunkDialogue(trimmed)) {
+      if (chunk.reduce((a, l) => a + l.text.length, 0) >= MIN_QUOTE_CHARS) {
+        quotes.push({ lines: chunk });
+      }
     }
   };
 

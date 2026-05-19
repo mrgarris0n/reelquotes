@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseWikiquote, isRedirect, stripMarkup, trimLongLines } from "../lib/wikiquote-parse";
+import { parseWikiquote, isRedirect, stripMarkup, trimLongLines, chunkDialogue } from "../lib/wikiquote-parse";
 
 test("isRedirect detects redirect pages", () => {
   assert.equal(isRedirect("#REDIRECT [[The Matrix (franchise)]]"), true);
@@ -280,4 +280,48 @@ test("series: hub/index page (no quotes) yields nothing", () => {
 * [https://x site]
 `;
   assert.deepEqual(parseWikiquote(wt), []);
+});
+
+test("chunkDialogue: short blocks pass through unchanged", () => {
+  const lines = [
+    { speaker: "A", text: "hi" },
+    { speaker: "B", text: "hey" },
+  ];
+  assert.deepEqual(chunkDialogue(lines), [lines]);
+});
+
+test("chunkDialogue: long dialogue is split into ≤6-line chunks", () => {
+  const lines = Array.from({ length: 14 }, (_, i) => ({
+    speaker: i % 2 === 0 ? "A" : "B",
+    text: `line ${i + 1} of fourteen, long enough to count.`,
+  }));
+  const chunks = chunkDialogue(lines);
+  assert.equal(chunks.length, 3); // 6 + 6 + 2
+  assert.equal(chunks[0]!.length, 6);
+  assert.equal(chunks[1]!.length, 6);
+  assert.equal(chunks[2]!.length, 2);
+});
+
+test("chunkDialogue: trailing single-line tail merges into the previous chunk", () => {
+  const lines = Array.from({ length: 13 }, (_, i) => ({
+    speaker: "A",
+    text: `line ${i + 1}.`,
+  }));
+  const chunks = chunkDialogue(lines);
+  // 6 + 6 + 1 → merge last into prior → 6 + 7
+  assert.equal(chunks.length, 2);
+  assert.equal(chunks[0]!.length, 6);
+  assert.equal(chunks[1]!.length, 7);
+});
+
+test("parseWikiquote: very long Dialogue block splits into multiple quotes", () => {
+  const body = Array.from({ length: 14 }, (_, i) => {
+    const speaker = i % 2 === 0 ? "A" : "B";
+    return `'''${speaker}:''' speaker ${speaker} line ${i + 1} text long enough.`;
+  }).join("\n");
+  const wt = `== Dialogue ==\n${body}\n`;
+  const q = parseWikiquote(wt);
+  // 14 lines / 6 per chunk = 3 quotes (6 + 6 + 2)
+  assert.equal(q.length, 3);
+  assert.ok(q.every((x) => x.lines.length <= 7));
 });
