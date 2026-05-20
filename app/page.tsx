@@ -508,7 +508,7 @@ export default function Page() {
               REEL<span className="text-neon-pink">/</span>QUOTES
             </h1>
             <p className="mt-2 font-body text-base text-cream-dim sm:text-lg">
-              Guess the movie. Skip with an empty box. Five quotes per round, then EJECT.
+              Guess the title. Skip with an empty box. Five quotes per round — then the tape ejects.
             </p>
           </div>
         </div>
