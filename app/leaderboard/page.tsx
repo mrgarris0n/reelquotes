@@ -11,6 +11,8 @@ const FILTERS: { id: Difficulty | "all"; label: string }[] = [
   { id: "hard", label: "Hard" },
 ];
 
+const RANK_GLYPH = (i: number) => (i === 0 ? "★" : i === 1 ? "◆" : i === 2 ? "◇" : "·");
+
 export default function LeaderboardPage() {
   const [active, setActive] = useState<Difficulty | "all">("all");
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -21,9 +23,6 @@ export default function LeaderboardPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    // Cache-bust with a timestamp so every fetch is a fresh URL — bypasses
-    // any CDN edge that might have cached a previous response, regardless of
-    // response Cache-Control headers.
     const base =
       active === "all" ? "/api/leaderboard" : `/api/leaderboard?difficulty=${active}`;
     const sep = base.includes("?") ? "&" : "?";
@@ -51,14 +50,21 @@ export default function LeaderboardPage() {
   }, [active]);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Leaderboard</h1>
+    <main className="mx-auto max-w-4xl px-5 pb-16 pt-8 sm:px-6 sm:pt-12">
+      <header className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="font-hud text-base uppercase tracking-[0.3em] text-neon-pink">
+            ◤ Top 20 ◢
+          </p>
+          <h1 className="crt-shift font-display text-4xl uppercase leading-none text-cream sm:text-5xl">
+            Leaderboard
+          </h1>
+        </div>
         <Link
           href="/"
-          className="rounded-lg border border-zinc-700 px-4 py-2 text-sm transition hover:border-zinc-500"
+          className="press-btn bg-transparent px-4 py-2 font-hud text-lg uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
         >
-          ← Back
+          ◀◀ Back
         </Link>
       </header>
 
@@ -70,11 +76,12 @@ export default function LeaderboardPage() {
               key={f.id}
               type="button"
               onClick={() => setActive(f.id)}
-              className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                isActive
-                  ? "border-amber-300 bg-amber-300/10 text-amber-200"
-                  : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
-              }`}
+              className={
+                "chip border-2 px-3 py-1 font-hud text-base uppercase tracking-wider transition " +
+                (isActive
+                  ? "border-cream bg-neon-pink text-ink-deep"
+                  : "border-cream/40 bg-transparent text-cream hover:text-ink-deep")
+              }
             >
               {f.label}
             </button>
@@ -83,54 +90,66 @@ export default function LeaderboardPage() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-400/40 bg-rose-400/10 p-4 text-sm text-rose-200">
-          Couldn't load the leaderboard: {error}
+        <div className="tape-border bg-neon-red/10 p-4 font-body text-base text-cream" style={{ borderColor: "#ff5160" }}>
+          Couldn&apos;t load the leaderboard: {error}
         </div>
       )}
 
       {!error && loading && (
-        <p className="text-sm text-zinc-500">Loading…</p>
+        <p className="font-hud text-xl uppercase tracking-[0.3em] text-cream-dim">
+          ░ Reading tape ░░░░ ▓▓
+        </p>
       )}
 
       {!error && !loading && entries.length === 0 && (
-        <p className="text-zinc-400">
-          No entries yet
+        <p className="font-hud text-lg text-cream-dim">
+          ▶ No entries yet
           {active !== "all" ? ` for ${active} mode` : ""} — be the first to make the board.
         </p>
       )}
 
       {!loading && entries.length > 0 && (
-        <ol className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
+        <ol className="tape-border-pink shadow-vhs-pink overflow-hidden bg-ink-veil/40">
           {entries.map((e, i) => (
             <li
               key={e.sessionId}
-              className="flex items-center justify-between gap-4 border-b border-zinc-800 px-5 py-3 last:border-b-0"
+              className="flex items-center justify-between gap-3 border-b border-cream/15 px-4 py-3 last:border-b-0 sm:px-5"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-3">
                 <span
-                  className={`w-8 text-right font-mono text-sm tabular-nums ${
-                    i === 0
-                      ? "text-amber-300"
+                  className={
+                    "w-10 shrink-0 text-right font-display text-2xl tabular-nums " +
+                    (i === 0
+                      ? "text-neon-pink"
                       : i < 3
-                        ? "text-amber-200/70"
-                        : "text-zinc-500"
-                  }`}
+                        ? "text-neon-orange"
+                        : "text-cream-smoke")
+                  }
                 >
-                  {i + 1}
+                  {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className="font-semibold text-zinc-100">{e.name}</span>
+                <span
+                  className={
+                    "shrink-0 font-hud text-xl " +
+                    (i < 3 ? "text-neon-pink" : "text-cream-smoke")
+                  }
+                  aria-hidden
+                >
+                  {RANK_GLYPH(i)}
+                </span>
+                <span className="truncate font-body text-lg text-cream">{e.name}</span>
                 {active === "all" && (
-                  <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs uppercase tracking-wider text-zinc-400">
+                  <span className="hidden shrink-0 border border-cream/30 px-2 py-0.5 font-hud text-sm uppercase tracking-wider text-cream-dim sm:inline">
                     {e.difficulty}
                   </span>
                 )}
               </div>
               <div className="flex items-baseline gap-3 text-right">
-                <span className="text-lg font-bold tabular-nums text-amber-300">
+                <span className="font-display text-2xl tabular-nums text-neon-pink">
                   {e.score}
                 </span>
-                <span className="text-xs text-zinc-500">
-                  {e.roundsWon} round{e.roundsWon === 1 ? "" : "s"}
+                <span className="hidden font-hud text-base text-cream-smoke sm:inline">
+                  {e.roundsWon} rd{e.roundsWon === 1 ? "" : "s"}
                 </span>
               </div>
             </li>

@@ -87,21 +87,73 @@ function buildShareText(outcomes: number[], score: number, roundsWon: number): s
   return `🎬 ReelQuotes · ${score} pts · ${roundsWon} round${roundsWon === 1 ? "" : "s"}\n${grid}\n${url}`;
 }
 
+function FilterRow({
+  label,
+  tail,
+  children,
+}: {
+  label: string;
+  tail: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h2 className="hud-rule mb-3 pb-2 font-hud text-base uppercase tracking-[0.25em] text-cream">
+        ▮ {label}
+      </h2>
+      <div className="flex flex-wrap gap-2">{children}</div>
+      <p className="mt-2 font-hud text-sm text-cream-smoke">{tail}</p>
+    </div>
+  );
+}
+
+function ChipBtn({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={
+        "chip border-2 px-3 py-1 font-hud text-base uppercase tracking-wider transition " +
+        (active
+          ? "border-cream bg-neon-pink text-ink-deep"
+          : "border-cream/40 bg-transparent text-cream hover:text-ink-deep")
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
 function QuoteBlock({ quote }: { quote: Quote }) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 font-mono text-base leading-relaxed shadow-inner">
-      {quote.lines.map((line, i) => (
-        <p key={i} className="mb-2 last:mb-0">
-          {line.speaker ? (
-            <>
-              <span className="text-amber-300">{line.speaker}:</span>{" "}
-              <span className="text-zinc-100">{line.text}</span>
-            </>
-          ) : (
-            <span className="text-zinc-100">{line.text}</span>
-          )}
-        </p>
-      ))}
+    <div className="tape-border-pink shadow-vhs-pink relative bg-ink-veil/50 p-6 font-body text-cream">
+      {/* in-card faint scanlines so the quote feels like it's playing on a CRT */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_3px,rgba(255,59,139,0.05)_3px,rgba(255,59,139,0.05)_4px)]"
+      />
+      <div className="relative space-y-3 text-[15px] leading-relaxed">
+        {quote.lines.map((line, i) => (
+          <p key={i}>
+            {line.speaker && (
+              <span className="mr-2 inline-block bg-neon-pink px-1.5 py-0.5 align-baseline font-hud text-xs uppercase leading-none tracking-wider text-ink-deep">
+                {line.speaker}
+              </span>
+            )}
+            <span>{line.text}</span>
+          </p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -437,8 +489,8 @@ export default function Page() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
-      <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <main className="mx-auto max-w-4xl px-5 pb-16 pt-8 sm:px-6 sm:pt-12">
+      <header className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <Image
             src="/logo-dark.png"
@@ -449,19 +501,28 @@ export default function Page() {
             className="h-14 w-auto shrink-0 sm:h-20"
           />
           <div className="min-w-0">
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">ReelQuotes</h1>
-            <p className="mt-1 text-sm text-zinc-400 sm:mt-2 sm:text-base">
-              Guess the movie from its quotes. Skip with an empty guess. Five quotes max per round.
+            <p className="font-hud text-xs uppercase tracking-[0.3em] text-neon-pink">
+              ◤ Now Playing ◢
+            </p>
+            <h1 className="crt-shift animate-crt font-display text-4xl leading-none text-cream sm:text-6xl">
+              REEL<span className="text-neon-pink">/</span>QUOTES
+            </h1>
+            <p className="mt-2 font-hud text-base text-cream-dim sm:text-lg">
+              Guess the movie. Skip with an empty box. Five quotes per round, then EJECT.
             </p>
           </div>
         </div>
         {phase.kind !== "setup" && (
-          <div className="self-start rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-right sm:shrink-0">
-            <div className="text-xs uppercase tracking-wider text-zinc-500">Score</div>
-            <div className="text-2xl font-bold tabular-nums text-amber-300">{score}</div>
-            <div className="text-xs text-zinc-500">
+          <div className="tape-border-pink shadow-vhs-pink self-start bg-ink-veil/70 px-4 py-2 text-right sm:shrink-0">
+            <div className="font-hud text-xs uppercase tracking-[0.2em] text-cream-dim">
+              ▮ Score
+            </div>
+            <div className="font-display text-3xl leading-none tabular-nums text-neon-pink">
+              {String(score).padStart(3, "0")}
+            </div>
+            <div className="font-hud text-sm text-cream-dim">
               {roundsWon} round{roundsWon === 1 ? "" : "s"}
-              {streak > 1 && <span className="ml-1 text-amber-200">· 🔥 {streak}</span>}
+              {streak > 1 && <span className="ml-2 text-neon-orange">· 🔥 {streak}</span>}
             </div>
           </div>
         )}
@@ -470,239 +531,220 @@ export default function Page() {
       {phase.kind === "setup" && (
         <section className="space-y-8">
           {daily && (
-            <details className="group rounded-xl border border-amber-300/30 bg-amber-300/5 p-4 [&_summary::-webkit-details-marker]:hidden">
+            <details className="group tape-border-pink shadow-vhs-pink bg-ink-veil/40 p-4 [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
-                <span className="text-xs uppercase tracking-wider text-amber-300">Quote of the Day</span>
-                <span className="text-xs text-amber-300/60 transition group-open:rotate-180">▾</span>
+                <span className="font-hud text-base uppercase tracking-[0.2em] text-neon-pink">
+                  ▮ Quote of the Day
+                </span>
+                <span className="font-hud text-base text-neon-pink/70 transition group-open:rotate-180">▾</span>
               </summary>
-              <div className="mt-4 font-mono text-sm leading-relaxed text-zinc-100">
+              <div className="mt-4 space-y-2 font-body text-sm leading-relaxed text-cream">
                 {daily.quote.lines.map((line, i) => (
-                  <p key={i} className="mb-1 last:mb-0">
-                    {line.speaker ? (
-                      <>
-                        <span className="text-amber-200">{line.speaker}:</span>{" "}
-                        <span>{line.text}</span>
-                      </>
-                    ) : (
-                      <span>{line.text}</span>
+                  <p key={i}>
+                    {line.speaker && (
+                      <span className="mr-2 inline-block bg-neon-pink px-1.5 py-0.5 align-baseline font-hud text-[11px] uppercase leading-none tracking-wider text-ink-deep">
+                        {line.speaker}
+                      </span>
                     )}
+                    <span>{line.text}</span>
                   </p>
                 ))}
               </div>
-              <details className="mt-3 text-xs text-zinc-400">
-                <summary className="cursor-pointer select-none text-zinc-500 hover:text-zinc-300">
-                  Reveal answer
+              <details className="mt-3 font-hud text-base text-cream-dim">
+                <summary className="cursor-pointer select-none text-cream-smoke hover:text-neon-orange">
+                  ▶ Reveal answer
                 </summary>
-                <p className="mt-2 text-zinc-200">
+                <p className="mt-2 text-cream">
                   {daily.title}{" "}
-                  <span className="text-zinc-500">({daily.year})</span>
+                  <span className="text-cream-smoke">({daily.year})</span>
                 </p>
               </details>
             </details>
           )}
 
-          <details className="group rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-300 [&_summary::-webkit-details-marker]:hidden">
-            <summary className="flex cursor-pointer select-none items-center justify-between gap-2 text-zinc-200">
-              <span className="font-semibold">How to play &amp; scoring</span>
-              <span className="text-xs text-zinc-500 transition group-open:rotate-180">▾</span>
+          <details className="group tape-border bg-ink-veil/30 p-4 font-body text-sm text-cream-dim [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
+              <span className="font-hud text-base uppercase tracking-[0.2em] text-cream">
+                ▮ How to play &amp; scoring
+              </span>
+              <span className="font-hud text-base text-cream/70 transition group-open:rotate-180">▾</span>
             </summary>
 
-            <div className="mt-4 space-y-4 text-zinc-400">
+            <div className="mt-4 space-y-4">
               <div>
-                <p className="font-semibold text-zinc-200">Gameplay</p>
-                <p className="mt-1">
-                  Each round shows quotes from a random movie. Type or pick the title from the
-                  dropdown. Submit an empty guess (or press Skip) to see another quote from the
-                  same movie. A wrong guess counts as a skip — you just see the next quote.
-                  When all five quotes are exhausted the game ends.
+                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                  ▸ Gameplay
+                </p>
+                <p className="mt-1 text-cream">
+                  Each round plays quotes from a random title. Type or pick from the dropdown.
+                  Empty input (or Skip) jumps to the next quote — same goes for a wrong guess.
+                  Burn through all five quotes and the tape ejects.
                 </p>
               </div>
 
               <div>
-                <p className="font-semibold text-zinc-200">Scoring</p>
-                <ul className="mt-1 list-disc space-y-1 pl-5">
+                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                  ▸ Scoring
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-cream">
                   <li>5 pts if you guess on quote 1, 4 on quote 2, … 1 on quote 5.</li>
                   <li>
-                    Streak bonus: guess on quote 1 with no hints used in consecutive rounds and
-                    each next perfect round earns +1 extra point (capped at +5).
+                    Streak bonus: consecutive quote-1 wins with no hints used add +1 per step
+                    (capped at +5).
                   </li>
                   <li>
-                    Hints: <span className="text-zinc-200">Reveal year</span> (1 pt, hard only),{" "}
-                    <span className="text-zinc-200">Reveal genre</span> (1 pt), and{" "}
-                    <span className="text-zinc-200">Reveal first letters</span> (2 pts —
-                    hangman-style outline of the title). Costs are deducted from this round's
-                    payout (floored at 0) and using any hint disqualifies the round from the
-                    streak bonus.
+                    Hints: <span className="text-neon-orange">Reveal year</span> (1 pt, hard
+                    only), <span className="text-neon-orange">Reveal genre</span> (1 pt),{" "}
+                    <span className="text-neon-orange">Reveal first letters</span> (2 pts —
+                    hangman outline). Costs come off this round's payout (floor 0). Any hint
+                    breaks the streak.
                   </li>
                 </ul>
               </div>
 
               <div>
-                <p className="font-semibold text-zinc-200">Difficulty</p>
-                <ul className="mt-1 list-disc space-y-1 pl-5">
+                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                  ▸ Difficulty
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-cream">
                   <li>
-                    <span className="text-zinc-200">Easy</span> — real character names, release
-                    year shown.
-                  </li>
-                  <li>
-                    <span className="text-zinc-200">Normal</span> — character names anonymized,
+                    <span className="text-neon-orange">Easy</span> — real character names,
                     release year shown.
                   </li>
                   <li>
-                    <span className="text-zinc-200">Hard</span> — anonymized, no year (you can
-                    still pay 1 pt to reveal it as a hint).
+                    <span className="text-neon-orange">Normal</span> — names anonymized, release
+                    year shown.
+                  </li>
+                  <li>
+                    <span className="text-neon-orange">Hard</span> — anonymized, no year (pay
+                    1 pt to reveal).
                   </li>
                 </ul>
               </div>
 
               <div>
-                <p className="font-semibold text-zinc-200">Leaderboard</p>
-                <p className="mt-1">
-                  At game over, if your score is positive you can put your name (1–10
-                  alphanumeric characters) on the top-20 leaderboard. Filterable by difficulty.
-                  Each session can only be submitted once.
+                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                  ▸ Leaderboard
+                </p>
+                <p className="mt-1 text-cream">
+                  Game-over with a positive score lets you put your name (1–{NAME_MAX_LEN}
+                  {" "}alphanumeric chars) on the top-20 board. Filterable by difficulty.
+                  One submission per session.
                 </p>
               </div>
             </div>
           </details>
 
-          <div>
-            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Type</h2>
-            <div className="flex flex-wrap gap-2">
-              {KINDS.map((k) => (
-                <button
-                  key={k.id}
-                  onClick={() => setKinds(toggle(kinds, k.id))}
-                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                    kinds.includes(k.id)
-                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
-                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
-                  }`}
-                >
-                  {k.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              {kinds.length === 0
-                ? "Movies & TV series"
-                : kinds.map((k) => KINDS.find((x) => x.id === k)?.label).join(", ")}
-            </p>
-          </div>
+          <FilterRow label="Type" tail={
+            kinds.length === 0
+              ? "Movies & TV series"
+              : kinds.map((k) => KINDS.find((x) => x.id === k)?.label).join(", ")
+          }>
+            {KINDS.map((k) => (
+              <ChipBtn
+                key={k.id}
+                active={kinds.includes(k.id)}
+                onClick={() => setKinds(toggle(kinds, k.id))}
+              >
+                {k.label}
+              </ChipBtn>
+            ))}
+          </FilterRow>
 
-          <div>
-            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Era</h2>
-            <div className="flex flex-wrap gap-2">
-              {DECADES.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDecades(toggle(decades, d))}
-                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                    decades.includes(d)
-                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
-                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              {decades.length === 0 ? "Any era" : decades.join(", ")}
-            </p>
-          </div>
+          <FilterRow label="Era" tail={decades.length === 0 ? "Any era" : decades.join(", ")}>
+            {DECADES.map((d) => (
+              <ChipBtn
+                key={d}
+                active={decades.includes(d)}
+                onClick={() => setDecades(toggle(decades, d))}
+              >
+                {d}
+              </ChipBtn>
+            ))}
+          </FilterRow>
 
-          <div>
-            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Genre</h2>
-            <div className="flex flex-wrap gap-2">
-              {GENRES.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setGenres(toggle(genres, g))}
-                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                    genres.includes(g)
-                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
-                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              {genres.length === 0 ? "Any genre" : genres.join(", ")}
-            </p>
-          </div>
+          <FilterRow label="Genre" tail={genres.length === 0 ? "Any genre" : genres.join(", ")}>
+            {GENRES.map((g) => (
+              <ChipBtn
+                key={g}
+                active={genres.includes(g)}
+                onClick={() => setGenres(toggle(genres, g))}
+              >
+                {g}
+              </ChipBtn>
+            ))}
+          </FilterRow>
 
-          <div>
-            <h2 className="mb-3 text-sm uppercase tracking-wider text-zinc-400">Difficulty</h2>
-            <div className="flex flex-wrap gap-2">
-              {DIFFICULTIES.map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => setDifficulty(d.id)}
-                  title={d.hint}
-                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                    difficulty === d.id
-                      ? "border-amber-300 bg-amber-300/10 text-amber-200"
-                      : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
-                  }`}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              {DIFFICULTIES.find((d) => d.id === difficulty)?.hint}
-            </p>
-          </div>
-
-          <button
-            onClick={startGame}
-            className="w-full rounded-lg bg-amber-300 px-6 py-3 font-semibold text-zinc-900 transition hover:bg-amber-200"
+          <FilterRow
+            label="Difficulty"
+            tail={DIFFICULTIES.find((d) => d.id === difficulty)?.hint ?? ""}
           >
-            Start game
-          </button>
+            {DIFFICULTIES.map((d) => (
+              <ChipBtn
+                key={d.id}
+                active={difficulty === d.id}
+                onClick={() => setDifficulty(d.id)}
+                title={d.hint}
+              >
+                {d.label}
+              </ChipBtn>
+            ))}
+          </FilterRow>
 
-          <Link
-            href="/leaderboard"
-            className="block w-full rounded-lg border border-zinc-700 px-6 py-3 text-center text-sm text-zinc-200 transition hover:border-zinc-500"
-          >
-            View leaderboard →
-          </Link>
+          <div className="pt-2">
+            <button
+              onClick={startGame}
+              className="press-btn shadow-vhs-pink group flex w-full items-center justify-center gap-3 bg-neon-pink px-6 py-4 font-display text-2xl uppercase tracking-wider text-cream tape-border-pink"
+            >
+              <span>▶ Press Play</span>
+              <span className="eject text-cream">◢◤</span>
+            </button>
+            <Link
+              href="/leaderboard"
+              className="press-btn mt-3 block bg-ink-veil/40 px-6 py-3 text-center font-hud text-lg uppercase tracking-[0.2em] text-cream tape-border hover:text-neon-orange"
+            >
+              ◇ View Leaderboard ◇
+            </Link>
+          </div>
         </section>
       )}
 
       {phase.kind === "loading" && (
-        <p className="text-zinc-400">Picking a movie and pulling quotes…</p>
+        <p className="font-hud text-2xl uppercase tracking-[0.3em] text-cream-dim">
+          ░ Rewinding tape ░░░░░ ▓▓
+        </p>
       )}
 
       {phase.kind === "playing" && (
         <section className="space-y-6">
-          <div className="flex items-center justify-between text-sm text-zinc-400">
-            <span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-hud text-base uppercase tracking-wider">
+            <span className="bg-neon-pink px-2 py-0.5 text-ink-deep">● REC</span>
+            <span className="text-cream">
               Quote{" "}
-              <span className="font-semibold text-zinc-200">
-                {phase.index + 1} / {phase.total}
-              </span>{" "}
-              <span className="text-zinc-500">
-                · worth {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - totalHintCost(phase.hintsUsed))} pt
-                {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - totalHintCost(phase.hintsUsed)) === 1
-                  ? ""
-                  : "s"}
+              <span className="text-neon-orange">
+                {String(phase.index + 1).padStart(2, "0")} / {String(phase.total).padStart(2, "0")}
               </span>
-              {phase.year !== undefined && (
-                <span className="ml-2 rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-xs text-amber-200">
-                  Released in {phase.year}
-                </span>
-              )}
-              {phase.genres && phase.genres.length > 0 && (
-                <span className="ml-2 rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-xs text-amber-200">
-                  {phase.genres.join(" · ")}
-                </span>
-              )}
             </span>
-            <span>{phase.pendingSkip ? "Skipping…" : null}</span>
+            <span className="text-cream-dim">·</span>
+            <span className="text-cream">
+              worth{" "}
+              <span className="text-neon-orange">
+                {Math.max(0, (POINTS_PER_QUOTE[phase.index] ?? 0) - totalHintCost(phase.hintsUsed))} pts
+              </span>
+            </span>
+            {phase.year !== undefined && (
+              <span className="border border-cream/40 px-2 py-0.5 text-cream">
+                © {phase.year}
+              </span>
+            )}
+            {phase.genres && phase.genres.length > 0 && (
+              <span className="border border-cream/40 px-2 py-0.5 text-cream">
+                {phase.genres.join(" · ")}
+              </span>
+            )}
+            {phase.pendingSkip && (
+              <span className="ml-auto text-neon-orange animate-pulse">SKIP &gt;&gt;</span>
+            )}
           </div>
 
           {(() => {
@@ -710,36 +752,23 @@ export default function Page() {
             const canShowGenre = !phase.hintsUsed.genre;
             const canShowTitle = !phase.hintsUsed.title;
             if (!canShowYear && !canShowGenre && !canShowTitle) return null;
+            const hintCls =
+              "chip border-2 border-cream/40 bg-transparent px-3 py-1 font-hud text-base uppercase tracking-wider text-cream transition hover:text-ink-deep disabled:cursor-not-allowed disabled:opacity-50";
             return (
-              <div className="flex flex-wrap gap-2 text-xs">
+              <div className="flex flex-wrap gap-2">
                 {canShowYear && (
-                  <button
-                    type="button"
-                    onClick={() => void buyHint("year")}
-                    disabled={actionInFlight}
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Reveal year — 1 pt
+                  <button type="button" onClick={() => void buyHint("year")} disabled={actionInFlight} className={hintCls}>
+                    + Year ◦ 1pt
                   </button>
                 )}
                 {canShowGenre && (
-                  <button
-                    type="button"
-                    onClick={() => void buyHint("genre")}
-                    disabled={actionInFlight}
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Reveal genre — 1 pt
+                  <button type="button" onClick={() => void buyHint("genre")} disabled={actionInFlight} className={hintCls}>
+                    + Genre ◦ 1pt
                   </button>
                 )}
                 {canShowTitle && (
-                  <button
-                    type="button"
-                    onClick={() => void buyHint("title")}
-                    disabled={actionInFlight}
-                    className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300 transition hover:border-amber-300 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Reveal first letters — 2 pts
+                  <button type="button" onClick={() => void buyHint("title")} disabled={actionInFlight} className={hintCls}>
+                    + First Letters ◦ 2pts
                   </button>
                 )}
               </div>
@@ -747,24 +776,26 @@ export default function Page() {
           })()}
 
           {phase.titleMask && (
-            <div className="rounded-lg border border-amber-300/30 bg-amber-300/5 px-4 py-3">
-              <div className="text-xs uppercase tracking-wider text-amber-300/80">
-                Title outline
+            <div className="tape-border bg-ink-veil/40 px-4 py-3">
+              <div className="font-hud text-base uppercase tracking-[0.25em] text-neon-orange">
+                ▮ Title outline
               </div>
-              <div className="mt-1 font-mono text-xl tracking-widest text-amber-100">
+              <div className="mt-1 font-body text-2xl tracking-[0.3em] text-cream">
                 {phase.titleMask}
               </div>
             </div>
           )}
 
           {phase.lastWrongGuess && (
-            <div className="rounded-lg border border-rose-400/40 bg-rose-400/10 px-4 py-2 text-sm text-rose-200">
-              Not <span className="font-semibold">“{phase.lastWrongGuess}”</span> — here's another
-              quote.
+            <div className="border-2 border-neon-red bg-neon-red/10 px-4 py-2 font-hud text-base tracking-wider text-cream">
+              <span className="mr-2 bg-neon-red px-1.5 py-0.5 text-ink-deep">✗ WRONG</span>
+              Not <span className="text-neon-red">“{phase.lastWrongGuess}”</span> — rolling tape…
             </div>
           )}
 
-          <QuoteBlock quote={phase.quote} />
+          <div key={phase.index} className="vhs-jitter">
+            <QuoteBlock quote={phase.quote} />
+          </div>
 
           <form onSubmit={submit} className="space-y-3">
             <div>
@@ -778,7 +809,6 @@ export default function Page() {
                 }}
                 onFocus={() => setOpen(true)}
                 onBlur={() => {
-                  // small delay so a mousedown on a dropdown item still registers
                   window.setTimeout(() => setOpen(false), 120);
                 }}
                 onKeyDown={(e) => {
@@ -796,16 +826,16 @@ export default function Page() {
                 }}
                 autoFocus
                 autoComplete="off"
-                placeholder="Movie title — or blank to skip"
+                placeholder="▶ Type the title — or blank to skip"
                 enterKeyHint="go"
                 aria-autocomplete="list"
                 aria-expanded={open && matches.length > 0}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-base outline-none placeholder:text-zinc-600 focus:border-amber-300 sm:text-lg"
+                className="w-full border-2 border-cream/40 bg-ink-veil/40 px-4 py-3 font-body text-base text-cream caret-neon-pink outline-none placeholder:text-cream-smoke focus:border-neon-pink sm:text-lg"
               />
               {open && matches.length > 0 && (
                 <ul
                   role="listbox"
-                  className="mt-2 max-h-64 overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl"
+                  className="tape-border-pink mt-3 max-h-64 overflow-auto bg-ink-deep/95 shadow-vhs-pink"
                 >
                   {matches.map((m, i) => (
                     <li
@@ -814,20 +844,30 @@ export default function Page() {
                       aria-selected={i === highlight}
                       onMouseEnter={() => setHighlight(i)}
                       onMouseDown={(e) => {
-                        // prevent input blur from closing the dropdown before submit fires
                         e.preventDefault();
                         setOpen(false);
                         setHighlight(-1);
                         void sendGuess(m.title, true);
                       }}
-                      className={`flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2 text-sm ${
-                        i === highlight
-                          ? "bg-amber-300/15 text-amber-100"
-                          : "text-zinc-200 hover:bg-zinc-800"
-                      }`}
+                      className={
+                        "flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2 font-body text-sm " +
+                        (i === highlight
+                          ? "bg-neon-pink text-ink-deep"
+                          : "text-cream hover:bg-ink-veil")
+                      }
                     >
-                      <span className="truncate">{m.title}</span>
-                      <span className="shrink-0 text-xs text-zinc-500">{m.year}</span>
+                      <span className="truncate">
+                        <span className={i === highlight ? "text-ink-deep" : "text-neon-pink"}>▶</span>{" "}
+                        {m.title}
+                      </span>
+                      <span
+                        className={
+                          "shrink-0 font-hud text-base " +
+                          (i === highlight ? "text-ink-deep" : "text-cream-smoke")
+                        }
+                      >
+                        {m.year}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -837,21 +877,21 @@ export default function Page() {
               <button
                 type="submit"
                 disabled={guess.trim() === "" || actionInFlight}
-                className="flex-1 rounded-lg bg-amber-300 px-4 py-2.5 font-semibold text-zinc-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+                className="press-btn shadow-vhs-pink flex-1 bg-neon-pink px-4 py-3 font-display text-xl uppercase tracking-wider text-cream tape-border-pink disabled:cursor-not-allowed disabled:bg-ink-veil disabled:text-cream-smoke disabled:shadow-none"
               >
-                Guess
+                ▶ Guess
               </button>
               <button
                 type="button"
                 onClick={() => skip()}
                 disabled={actionInFlight}
-                className="flex-1 rounded-lg border border-zinc-700 px-4 py-2.5 text-zinc-200 transition hover:border-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="press-btn flex-1 bg-transparent px-4 py-3 font-display text-xl uppercase tracking-wider text-cream tape-border hover:text-neon-orange disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Skip
+                ▷▷ Skip
               </button>
             </div>
-            <p className="text-xs text-zinc-500">
-              A wrong guess just shows the next quote. The game ends when you run out of quotes.
+            <p className="font-hud text-sm text-cream-smoke">
+              A wrong guess = next quote. Run out and the tape ejects.
             </p>
           </form>
         </section>
@@ -859,51 +899,50 @@ export default function Page() {
 
       {phase.kind === "roundWon" && (
         <section className="space-y-6">
-          <div className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 p-6">
-            <p className="text-sm uppercase tracking-wider text-emerald-300">Correct</p>
-            <h2 className="mt-1 text-2xl font-bold">
-              {phase.title} <span className="font-normal text-zinc-400">({phase.year})</span>
+          <div className="tape-border bg-neon-teal/10 p-6" style={{ borderColor: "#3dd8ce" }}>
+            <p className="font-hud text-lg uppercase tracking-[0.3em] text-neon-teal">
+              ◢ Correct ◣
+            </p>
+            <h2 className="mt-2 font-display text-3xl uppercase leading-tight text-cream sm:text-4xl">
+              {phase.title}{" "}
+              <span className="font-hud text-2xl text-cream-dim">({phase.year})</span>
             </h2>
             <a
               href={`https://www.imdb.com/title/${phase.imdbId}/`}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-block text-sm text-amber-300 underline-offset-2 hover:underline"
+              className="mt-2 inline-block font-hud text-lg text-neon-orange hover:underline"
             >
-              View on IMDb →
+              ▶ View on IMDb
             </a>
 
             {(phase.streakBonus > 0 || phase.hintCount > 0) ? (
-              <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-sm">
-                <span className="text-zinc-300">
-                  +{phase.basePoints} base
-                </span>
+              <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-hud text-xl">
+                <span className="text-cream">+{phase.basePoints} base</span>
                 {phase.streakBonus > 0 && (
-                  <span className="text-amber-200">+{phase.streakBonus} streak</span>
+                  <span className="text-neon-orange">+{phase.streakBonus} streak</span>
                 )}
                 {phase.hintCount > 0 && (
-                  <span className="text-rose-300">
+                  <span className="text-neon-red">
                     −{phase.hintCost} hint{phase.hintCount === 1 ? "" : "s"}
                   </span>
                 )}
-                <span className="text-zinc-500">=</span>
-                <span className="text-lg font-bold text-emerald-200">
-                  +{phase.points} pt{phase.points === 1 ? "" : "s"}
+                <span className="text-cream-smoke">=</span>
+                <span className="font-display text-3xl text-neon-teal">
+                  +{phase.points}
                 </span>
                 {phase.pointsFloored && (
-                  <span className="text-xs text-zinc-500">(floored at 0)</span>
+                  <span className="text-sm text-cream-smoke">(floored at 0)</span>
                 )}
               </div>
             ) : (
-              <p className="mt-4 font-mono text-lg font-bold text-emerald-200">
-                +{phase.points} point{phase.points === 1 ? "" : "s"}
-              </p>
+              <p className="mt-5 font-display text-4xl text-neon-teal">+{phase.points}</p>
             )}
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-sm uppercase tracking-wider text-zinc-400">
-              Quote{phase.quotes.length > 1 ? "s" : ""} you saw
+            <h3 className="hud-rule pb-1 font-hud text-base uppercase tracking-[0.25em] text-cream">
+              ▮ Quote{phase.quotes.length > 1 ? "s" : ""} you saw
             </h3>
             {phase.quotes.map((q, i) => (
               <QuoteBlock key={i} quote={q} />
@@ -912,39 +951,45 @@ export default function Page() {
 
           <button
             onClick={() => void startRound()}
-            className="w-full rounded-lg bg-amber-300 px-6 py-3 font-semibold text-zinc-900 transition hover:bg-amber-200"
+            className="press-btn shadow-vhs-pink group flex w-full items-center justify-center gap-3 bg-neon-pink px-6 py-4 font-display text-2xl uppercase tracking-wider text-cream tape-border-pink"
           >
-            Next round →
+            <span>Next Round</span>
+            <span className="eject text-cream">◢◤</span>
           </button>
         </section>
       )}
 
       {phase.kind === "gameOver" && (
         <section className="space-y-6">
-          <div className="rounded-xl border border-rose-400/40 bg-rose-400/10 p-6">
-            <p className="text-sm uppercase tracking-wider text-rose-300">Game over</p>
-            <h2 className="mt-1 text-2xl font-bold">
-              Final score: <span className="text-amber-300">{score}</span>
+          <div className="tape-border bg-neon-red/10 p-6" style={{ borderColor: "#ff5160" }}>
+            <p className="font-hud text-lg uppercase tracking-[0.3em] text-neon-red">
+              ◢ Tape Ejected ◣
+            </p>
+            <h2 className="mt-2 font-display text-3xl uppercase text-cream sm:text-4xl">
+              Final Score:{" "}
+              <span className="text-neon-orange">{String(score).padStart(3, "0")}</span>
             </h2>
-            <p className="mt-1 text-sm text-zinc-400">
+            <p className="mt-2 font-hud text-lg text-cream-dim">
               {roundsWon} round{roundsWon === 1 ? "" : "s"} won · ran out of quotes for{" "}
-              <span className="font-semibold text-zinc-200">{phase.title}</span>{" "}
-              <span className="text-zinc-500">({phase.year})</span>
+              <span className="text-cream">{phase.title}</span>{" "}
+              <span className="text-cream-smoke">({phase.year})</span>
             </p>
             <a
               href={`https://www.imdb.com/title/${phase.imdbId}/`}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-block text-sm text-amber-300 underline-offset-2 hover:underline"
+              className="mt-2 inline-block font-hud text-lg text-neon-orange hover:underline"
             >
-              View on IMDb →
+              ▶ View on IMDb
             </a>
           </div>
 
           {phase.outcomes.length > 0 && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-              <div className="text-xs uppercase tracking-wider text-zinc-500">Round breakdown</div>
-              <div className="mt-2 font-mono text-2xl tracking-wide">
+            <div className="tape-border bg-ink-veil/40 p-5">
+              <div className="font-hud text-base uppercase tracking-[0.25em] text-cream-dim">
+                ▮ Round breakdown
+              </div>
+              <div className="mt-3 font-mono text-3xl tracking-wide">
                 {phase.outcomes.map((o, i) => (
                   <span key={i}>{emojiFor(o)}</span>
                 ))}
@@ -952,20 +997,20 @@ export default function Page() {
               <div className="mt-3 flex items-center gap-3">
                 <button
                   onClick={() => void shareResults()}
-                  className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition hover:border-amber-300 hover:text-amber-200"
+                  className="press-btn bg-transparent px-4 py-2 font-hud text-base uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
                 >
-                  {canNativeShare ? "Share results" : "Copy results"}
+                  {canNativeShare ? "▶ Share results" : "▶ Copy results"}
                 </button>
                 {shareToast && (
-                  <span className="text-xs text-emerald-300">{shareToast}</span>
+                  <span className="font-hud text-base text-neon-teal">{shareToast}</span>
                 )}
               </div>
             </div>
           )}
 
           <div className="space-y-3">
-            <h3 className="text-sm uppercase tracking-wider text-zinc-400">
-              Quote{phase.quotes.length > 1 ? "s" : ""} from the final round
+            <h3 className="hud-rule pb-1 font-hud text-base uppercase tracking-[0.25em] text-cream">
+              ▮ Quote{phase.quotes.length > 1 ? "s" : ""} from the final round
             </h3>
             {phase.quotes.map((q, i) => (
               <QuoteBlock key={i} quote={q} />
@@ -975,14 +1020,14 @@ export default function Page() {
           {score > 0 && scoreToken && submitState.kind !== "submitted" && (
             <form
               onSubmit={submitToLeaderboard}
-              className="space-y-3 rounded-xl border border-amber-300/40 bg-amber-300/5 p-5"
+              className="tape-border-pink shadow-vhs-pink space-y-3 bg-ink-veil/40 p-5"
             >
               <div>
-                <p className="text-sm font-semibold text-amber-200">
-                  Score {score} — make the leaderboard?
+                <p className="font-hud text-lg uppercase tracking-[0.2em] text-neon-pink">
+                  ▶ Score {score} — make the board?
                 </p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  Up to {NAME_MAX_LEN} letters or digits. No spaces or special characters.
+                <p className="mt-1 font-hud text-base text-cream-dim">
+                  Up to {NAME_MAX_LEN} letters or digits. No spaces or specials.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -996,50 +1041,50 @@ export default function Page() {
                   placeholder="Your name"
                   enterKeyHint="send"
                   disabled={submitState.kind === "submitting"}
-                  className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base outline-none placeholder:text-zinc-600 focus:border-amber-300"
+                  className="min-w-0 flex-1 border-2 border-cream/40 bg-ink-deep px-3 py-2 font-body text-base text-cream caret-neon-pink outline-none placeholder:text-cream-smoke focus:border-neon-pink"
                 />
                 <button
                   type="submit"
                   disabled={!submitName.trim() || submitState.kind === "submitting"}
-                  className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 sm:shrink-0"
+                  className="press-btn bg-neon-pink px-4 py-2 font-hud text-lg uppercase tracking-wider text-ink-deep tape-border-pink disabled:cursor-not-allowed disabled:bg-ink-veil disabled:text-cream-smoke sm:shrink-0"
                 >
-                  {submitState.kind === "submitting" ? "Submitting…" : "Submit"}
+                  {submitState.kind === "submitting" ? "Sending…" : "▶ Submit"}
                 </button>
               </div>
               {submitState.kind === "error" && (
-                <p className="text-xs text-rose-300">{submitState.message}</p>
+                <p className="font-hud text-base text-neon-red">{submitState.message}</p>
               )}
             </form>
           )}
 
           {submitState.kind === "submitted" && (
-            <div className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 p-5 text-sm">
-              <p className="font-semibold text-emerald-200">
+            <div className="tape-border bg-neon-teal/10 p-5" style={{ borderColor: "#3dd8ce" }}>
+              <p className="font-hud text-lg uppercase tracking-wider text-neon-teal">
                 {submitState.rank
-                  ? `Submitted — you're #${submitState.rank} on the leaderboard.`
-                  : "Submitted — but didn't crack the top 20 this time."}
+                  ? `◢ Submitted — #${submitState.rank} on the board ◣`
+                  : "Submitted — didn't crack the top 20"}
               </p>
               <Link
                 href="/leaderboard"
-                className="mt-2 inline-block text-amber-300 underline-offset-2 hover:underline"
+                className="mt-2 inline-block font-hud text-base text-neon-orange hover:underline"
               >
-                View leaderboard →
+                ▶ View leaderboard
               </Link>
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => setPhase({ kind: "setup" })}
-              className="flex-1 rounded-lg bg-amber-300 px-6 py-3 font-semibold text-zinc-900 transition hover:bg-amber-200"
+              className="press-btn shadow-vhs-pink flex-1 bg-neon-pink px-6 py-4 font-display text-2xl uppercase tracking-wider text-cream tape-border-pink"
             >
-              Play again
+              ◀◀ Rewind
             </button>
             <Link
               href="/leaderboard"
-              className="flex-1 rounded-lg border border-zinc-700 px-6 py-3 text-center text-zinc-200 transition hover:border-zinc-500"
+              className="press-btn flex-1 bg-transparent px-6 py-4 text-center font-display text-2xl uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
             >
-              Leaderboard
+              ◇ Board ◇
             </Link>
           </div>
         </section>
@@ -1047,27 +1092,29 @@ export default function Page() {
 
       {phase.kind === "error" && (
         <section className="space-y-4">
-          <div className="rounded-xl border border-rose-400/40 bg-rose-400/10 p-6">
-            <p className="text-sm uppercase tracking-wider text-rose-300">Something went wrong</p>
-            <p className="mt-2 text-zinc-200">{phase.message}</p>
+          <div className="tape-border bg-neon-red/10 p-6" style={{ borderColor: "#ff5160" }}>
+            <p className="font-hud text-lg uppercase tracking-[0.3em] text-neon-red">
+              ◢ Tracking Error ◣
+            </p>
+            <p className="mt-2 font-body text-base text-cream">{phase.message}</p>
           </div>
           <button
             onClick={() => setPhase({ kind: "setup" })}
-            className="w-full rounded-lg border border-zinc-700 px-6 py-3 transition hover:border-zinc-500"
+            className="press-btn w-full bg-transparent px-6 py-3 font-display text-xl uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
           >
-            Back
+            ◀◀ Back
           </button>
         </section>
       )}
 
-      <footer className="mt-16 border-t border-zinc-800 pt-6 text-center text-xs text-zinc-500">
-        <p>
-          Created by{" "}
+      <footer className="mt-20 border-t-2 border-dashed border-cream/20 pt-6 text-center">
+        <p className="font-hud text-base uppercase tracking-[0.25em] text-cream-dim">
+          ◢ Created by{" "}
           <a
             href="https://github.com/mrgarris0n"
             target="_blank"
             rel="noreferrer"
-            className="text-zinc-300 underline-offset-2 hover:text-amber-300 hover:underline"
+            className="text-cream hover:text-neon-pink"
           >
             mrgarris0n
           </a>
@@ -1076,12 +1123,13 @@ export default function Page() {
             href={`${GITHUB_REPO_URL}/issues/new`}
             target="_blank"
             rel="noreferrer"
-            className="text-zinc-300 underline-offset-2 hover:text-amber-300 hover:underline"
+            className="text-cream hover:text-neon-pink"
           >
             Report an issue
-          </a>
+          </a>{" "}
+          ◣
         </p>
-        <p className="mt-1 font-mono text-[10px] text-zinc-600">
+        <p className="mt-1 font-hud text-sm text-cream-smoke">
           v{APP_VERSION}
           {COMMIT_SHA_SHORT && (
             <>
@@ -1090,7 +1138,7 @@ export default function Page() {
                 href={`${GITHUB_REPO_URL}/commit/${COMMIT_SHA}`}
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-amber-300"
+                className="hover:text-neon-pink"
               >
                 {COMMIT_SHA_SHORT}
               </a>

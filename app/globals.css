@@ -8,10 +8,199 @@
 
 html,
 body {
-  background: #0b0b0f;
-  color: #e8e8ee;
+  background: #0a0823;
+  color: #f5e9d2;
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Layered atmosphere: vignette tint, fine scanlines, soft grain.
+   Pointer-events disabled so overlays never eat clicks. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Scanlines — repeating 1px dim band every 3px. mix-blend-overlay so they
+   tint, not paint. */
+body::before {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.22) 2px,
+    rgba(0, 0, 0, 0.22) 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+/* SVG fractal noise grain. */
+body::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' /></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.5' /></svg>");
+  opacity: 0.06;
+}
+
+/* Vignette around the page so the centre always wins. */
+.vhs-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+/* CRT chromatic shift on a label/title — applied as a class. */
+.crt-shift {
+  text-shadow:
+    -0.04em 0 0 rgba(255, 59, 139, 0.85),
+    0.04em 0 0 rgba(61, 216, 206, 0.85);
+}
+
+/* A thick tape-label border, double line. */
+.tape-border {
+  border: 2px solid #f5e9d2;
+  outline: 2px solid #f5e9d2;
+  outline-offset: 3px;
+}
+
+/* Magenta tape border for accent panels. */
+.tape-border-pink {
+  border: 2px solid #ff3b8b;
+  outline: 1px solid #ff3b8b;
+  outline-offset: 3px;
+}
+
+/* Tracking-bar — horizontal shimmer band that sweeps across. Used as the
+   thin top strip of the page. */
+.tracking-strip {
+  position: relative;
+  height: 14px;
+  background: repeating-linear-gradient(
+    90deg,
+    #ff3b8b 0 16px,
+    #16113f 16px 24px,
+    #ffa44a 24px 40px,
+    #16113f 40px 48px,
+    #3dd8ce 48px 64px,
+    #16113f 64px 72px
+  );
+  overflow: hidden;
+  border-bottom: 1px solid #ff3b8b;
+}
+.tracking-strip::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(245, 233, 210, 0.45),
+    transparent
+  );
+  animation: tracking-sweep 2.4s linear infinite;
+}
+@keyframes tracking-sweep {
+  0% {
+    transform: translateX(-200%);
+  }
+  100% {
+    transform: translateX(500%);
+  }
+}
+
+/* Section heading underline — pixel-style dashed. */
+.hud-rule {
+  background-image: linear-gradient(
+    to right,
+    #f5e9d2 0,
+    #f5e9d2 8px,
+    transparent 8px,
+    transparent 14px
+  );
+  background-size: 14px 2px;
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+}
+
+/* Cassette-tag chip: hover slides a magenta layer in. Used for filter chips. */
+.chip {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #ff3b8b;
+  transform: translateX(-101%);
+  transition: transform 0.18s ease-out;
+  z-index: -1;
+}
+.chip:hover::before {
+  transform: translateX(0);
+}
+
+/* Pixelated press effect on the primary action button. */
+.press-btn {
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+.press-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+/* Eject-arrow that ticks on hover (used on Start / Next round). */
+.eject {
+  display: inline-block;
+  transition: transform 0.18s cubic-bezier(0.5, 0, 0.1, 1);
+}
+.press-btn:hover .eject {
+  transform: translateX(4px);
+}
+
+/* Subtle one-frame jitter applied on quote-block entry — re-fires when the
+   index changes by being re-keyed in the JSX. */
+.vhs-jitter {
+  animation: vhsJitter 0.18s steps(3, end);
+}
+@keyframes vhsJitter {
+  0% {
+    transform: translate(-2px, 1px);
+  }
+  33% {
+    transform: translate(2px, -1px);
+  }
+  66% {
+    transform: translate(-1px, 0);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Selection colour: hot magenta on cream. */
+::selection {
+  background: #ff3b8b;
+  color: #0a0823;
+}
+
+/* Sane defaults for native form widgets the design needs to dominate. */
+:focus-visible {
+  outline: 2px solid #ff3b8b;
+  outline-offset: 2px;
 }
