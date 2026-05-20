@@ -41,7 +41,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BotIdClient protect={protectedRoutes} />
       </head>
       <body className="font-body min-h-screen">
-        <div className="tracking-strip" aria-hidden />
         <div className="vhs-vignette" aria-hidden />
         {children}
         <Analytics />

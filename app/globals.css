@@ -12,6 +12,15 @@ body {
   color: #f5e9d2;
 }
 
+/* Desktop bump: scale the root font-size 10% so every rem-based text-*
+   utility grows proportionally. Mobile (<640px) stays at the browser
+   default (16px) where the layout is already tuned tight. */
+@media (min-width: 640px) {
+  html {
+    font-size: 110%;
+  }
+}
+
 body {
   position: relative;
   overflow-x: hidden;
