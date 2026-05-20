@@ -98,11 +98,11 @@ function FilterRow({
 }) {
   return (
     <div>
-      <h2 className="hud-rule mb-3 pb-2 font-hud text-base uppercase tracking-[0.25em] text-cream">
+      <h2 className="hud-rule mb-3 pb-2 font-body text-base uppercase tracking-[0.25em] text-cream">
         ▮ {label}
       </h2>
       <div className="flex flex-wrap gap-2">{children}</div>
-      <p className="mt-2 font-hud text-sm text-cream-smoke">{tail}</p>
+      <p className="mt-2 font-body text-sm text-cream-smoke">{tail}</p>
     </div>
   );
 }
@@ -123,7 +123,7 @@ function ChipBtn({
       onClick={onClick}
       title={title}
       className={
-        "chip border-2 px-3 py-1 font-hud text-base uppercase tracking-wider transition " +
+        "chip border-2 px-3 py-1 font-body text-base uppercase tracking-wider transition " +
         (active
           ? "border-cream bg-neon-pink text-ink-deep"
           : "border-cream/40 bg-transparent text-cream hover:text-ink-deep")
@@ -146,7 +146,7 @@ function QuoteBlock({ quote }: { quote: Quote }) {
         {quote.lines.map((line, i) => (
           <p key={i}>
             {line.speaker && (
-              <span className="mr-2 inline-block bg-neon-pink px-1.5 py-0.5 align-baseline font-hud text-xs uppercase leading-none tracking-wider text-ink-deep">
+              <span className="mr-2 inline-block bg-neon-pink px-1.5 py-0.5 align-baseline font-body text-xs uppercase leading-none tracking-wider text-ink-deep">
                 {line.speaker}
               </span>
             )}
@@ -501,26 +501,26 @@ export default function Page() {
             className="h-14 w-auto shrink-0 sm:h-20"
           />
           <div className="min-w-0">
-            <p className="font-hud text-xs uppercase tracking-[0.3em] text-neon-pink">
+            <p className="font-body text-xs uppercase tracking-[0.3em] text-neon-pink">
               ◤ Now Playing ◢
             </p>
             <h1 className="crt-shift animate-crt font-display text-4xl leading-none text-cream sm:text-6xl">
               REEL<span className="text-neon-pink">/</span>QUOTES
             </h1>
-            <p className="mt-2 font-hud text-base text-cream-dim sm:text-lg">
+            <p className="mt-2 font-body text-base text-cream-dim sm:text-lg">
               Guess the movie. Skip with an empty box. Five quotes per round, then EJECT.
             </p>
           </div>
         </div>
         {phase.kind !== "setup" && (
           <div className="tape-border-pink shadow-vhs-pink self-start bg-ink-veil/70 px-4 py-2 text-right sm:shrink-0">
-            <div className="font-hud text-xs uppercase tracking-[0.2em] text-cream-dim">
+            <div className="font-body text-xs uppercase tracking-[0.2em] text-cream-dim">
               ▮ Score
             </div>
             <div className="font-display text-3xl leading-none tabular-nums text-neon-pink">
               {String(score).padStart(3, "0")}
             </div>
-            <div className="font-hud text-sm text-cream-dim">
+            <div className="font-body text-sm text-cream-dim">
               {roundsWon} round{roundsWon === 1 ? "" : "s"}
               {streak > 1 && <span className="ml-2 text-neon-orange">· 🔥 {streak}</span>}
             </div>
@@ -533,16 +533,16 @@ export default function Page() {
           {daily && (
             <details className="group tape-border-pink shadow-vhs-pink bg-ink-veil/40 p-4 [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
-                <span className="font-hud text-base uppercase tracking-[0.2em] text-neon-pink">
+                <span className="font-body text-base uppercase tracking-[0.2em] text-neon-pink">
                   ▮ Quote of the Day
                 </span>
-                <span className="font-hud text-base text-neon-pink/70 transition group-open:rotate-180">▾</span>
+                <span className="font-body text-base text-neon-pink/70 transition group-open:rotate-180">▾</span>
               </summary>
               <div className="mt-4 space-y-2 font-body text-sm leading-relaxed text-cream">
                 {daily.quote.lines.map((line, i) => (
                   <p key={i}>
                     {line.speaker && (
-                      <span className="mr-2 inline-block bg-neon-pink px-1.5 py-0.5 align-baseline font-hud text-[11px] uppercase leading-none tracking-wider text-ink-deep">
+                      <span className="mr-2 inline-block bg-neon-pink px-1.5 py-0.5 align-baseline font-body text-[11px] uppercase leading-none tracking-wider text-ink-deep">
                         {line.speaker}
                       </span>
                     )}
@@ -550,7 +550,7 @@ export default function Page() {
                   </p>
                 ))}
               </div>
-              <details className="mt-3 font-hud text-base text-cream-dim">
+              <details className="mt-3 font-body text-base text-cream-dim">
                 <summary className="cursor-pointer select-none text-cream-smoke hover:text-neon-orange">
                   ▶ Reveal answer
                 </summary>
@@ -564,15 +564,15 @@ export default function Page() {
 
           <details className="group tape-border bg-ink-veil/30 p-4 font-body text-sm text-cream-dim [&_summary::-webkit-details-marker]:hidden">
             <summary className="flex cursor-pointer select-none items-center justify-between gap-2">
-              <span className="font-hud text-base uppercase tracking-[0.2em] text-cream">
+              <span className="font-body text-base uppercase tracking-[0.2em] text-cream">
                 ▮ How to play &amp; scoring
               </span>
-              <span className="font-hud text-base text-cream/70 transition group-open:rotate-180">▾</span>
+              <span className="font-body text-base text-cream/70 transition group-open:rotate-180">▾</span>
             </summary>
 
             <div className="mt-4 space-y-4">
               <div>
-                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                <p className="font-body text-base uppercase tracking-wider text-neon-orange">
                   ▸ Gameplay
                 </p>
                 <p className="mt-1 text-cream">
@@ -583,7 +583,7 @@ export default function Page() {
               </div>
 
               <div>
-                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                <p className="font-body text-base uppercase tracking-wider text-neon-orange">
                   ▸ Scoring
                 </p>
                 <ul className="mt-1 list-disc space-y-1 pl-5 text-cream">
@@ -603,7 +603,7 @@ export default function Page() {
               </div>
 
               <div>
-                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                <p className="font-body text-base uppercase tracking-wider text-neon-orange">
                   ▸ Difficulty
                 </p>
                 <ul className="mt-1 list-disc space-y-1 pl-5 text-cream">
@@ -623,7 +623,7 @@ export default function Page() {
               </div>
 
               <div>
-                <p className="font-hud text-base uppercase tracking-wider text-neon-orange">
+                <p className="font-body text-base uppercase tracking-wider text-neon-orange">
                   ▸ Leaderboard
                 </p>
                 <p className="mt-1 text-cream">
@@ -701,7 +701,7 @@ export default function Page() {
             </button>
             <Link
               href="/leaderboard"
-              className="press-btn mt-3 block bg-ink-veil/40 px-6 py-3 text-center font-hud text-lg uppercase tracking-[0.2em] text-cream tape-border hover:text-neon-orange"
+              className="press-btn mt-3 block bg-ink-veil/40 px-6 py-3 text-center font-body text-lg uppercase tracking-[0.2em] text-cream tape-border hover:text-neon-orange"
             >
               ◇ View Leaderboard ◇
             </Link>
@@ -710,14 +710,14 @@ export default function Page() {
       )}
 
       {phase.kind === "loading" && (
-        <p className="font-hud text-2xl uppercase tracking-[0.3em] text-cream-dim">
+        <p className="font-body text-2xl uppercase tracking-[0.3em] text-cream-dim">
           ░ Rewinding tape ░░░░░ ▓▓
         </p>
       )}
 
       {phase.kind === "playing" && (
         <section className="space-y-6">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-hud text-base uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-body text-base uppercase tracking-wider">
             <span className="bg-neon-pink px-2 py-0.5 text-ink-deep">● REC</span>
             <span className="text-cream">
               Quote{" "}
@@ -753,7 +753,7 @@ export default function Page() {
             const canShowTitle = !phase.hintsUsed.title;
             if (!canShowYear && !canShowGenre && !canShowTitle) return null;
             const hintCls =
-              "chip border-2 border-cream/40 bg-transparent px-3 py-1 font-hud text-base uppercase tracking-wider text-cream transition hover:text-ink-deep disabled:cursor-not-allowed disabled:opacity-50";
+              "chip border-2 border-cream/40 bg-transparent px-3 py-1 font-body text-base uppercase tracking-wider text-cream transition hover:text-ink-deep disabled:cursor-not-allowed disabled:opacity-50";
             return (
               <div className="flex flex-wrap gap-2">
                 {canShowYear && (
@@ -777,7 +777,7 @@ export default function Page() {
 
           {phase.titleMask && (
             <div className="tape-border bg-ink-veil/40 px-4 py-3">
-              <div className="font-hud text-base uppercase tracking-[0.25em] text-neon-orange">
+              <div className="font-body text-base uppercase tracking-[0.25em] text-neon-orange">
                 ▮ Title outline
               </div>
               <div className="mt-1 font-body text-2xl tracking-[0.3em] text-cream">
@@ -787,7 +787,7 @@ export default function Page() {
           )}
 
           {phase.lastWrongGuess && (
-            <div className="border-2 border-neon-red bg-neon-red/10 px-4 py-2 font-hud text-base tracking-wider text-cream">
+            <div className="border-2 border-neon-red bg-neon-red/10 px-4 py-2 font-body text-base tracking-wider text-cream">
               <span className="mr-2 bg-neon-red px-1.5 py-0.5 text-ink-deep">✗ WRONG</span>
               Not <span className="text-neon-red">“{phase.lastWrongGuess}”</span> — rolling tape…
             </div>
@@ -862,7 +862,7 @@ export default function Page() {
                       </span>
                       <span
                         className={
-                          "shrink-0 font-hud text-base " +
+                          "shrink-0 font-body text-base " +
                           (i === highlight ? "text-ink-deep" : "text-cream-smoke")
                         }
                       >
@@ -890,7 +890,7 @@ export default function Page() {
                 ▷▷ Skip
               </button>
             </div>
-            <p className="font-hud text-sm text-cream-smoke">
+            <p className="font-body text-sm text-cream-smoke">
               A wrong guess = next quote. Run out and the tape ejects.
             </p>
           </form>
@@ -900,24 +900,24 @@ export default function Page() {
       {phase.kind === "roundWon" && (
         <section className="space-y-6">
           <div className="tape-border bg-neon-teal/10 p-6" style={{ borderColor: "#3dd8ce" }}>
-            <p className="font-hud text-lg uppercase tracking-[0.3em] text-neon-teal">
+            <p className="font-body text-lg uppercase tracking-[0.3em] text-neon-teal">
               ◢ Correct ◣
             </p>
             <h2 className="mt-2 font-display text-3xl uppercase leading-tight text-cream sm:text-4xl">
               {phase.title}{" "}
-              <span className="font-hud text-2xl text-cream-dim">({phase.year})</span>
+              <span className="font-body text-2xl text-cream-dim">({phase.year})</span>
             </h2>
             <a
               href={`https://www.imdb.com/title/${phase.imdbId}/`}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-block font-hud text-lg text-neon-orange hover:underline"
+              className="mt-2 inline-block font-body text-lg text-neon-orange hover:underline"
             >
               ▶ View on IMDb
             </a>
 
             {(phase.streakBonus > 0 || phase.hintCount > 0) ? (
-              <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-hud text-xl">
+              <div className="mt-5 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-body text-xl">
                 <span className="text-cream">+{phase.basePoints} base</span>
                 {phase.streakBonus > 0 && (
                   <span className="text-neon-orange">+{phase.streakBonus} streak</span>
@@ -941,7 +941,7 @@ export default function Page() {
           </div>
 
           <div className="space-y-3">
-            <h3 className="hud-rule pb-1 font-hud text-base uppercase tracking-[0.25em] text-cream">
+            <h3 className="hud-rule pb-1 font-body text-base uppercase tracking-[0.25em] text-cream">
               ▮ Quote{phase.quotes.length > 1 ? "s" : ""} you saw
             </h3>
             {phase.quotes.map((q, i) => (
@@ -962,14 +962,14 @@ export default function Page() {
       {phase.kind === "gameOver" && (
         <section className="space-y-6">
           <div className="tape-border bg-neon-red/10 p-6" style={{ borderColor: "#ff5160" }}>
-            <p className="font-hud text-lg uppercase tracking-[0.3em] text-neon-red">
+            <p className="font-body text-lg uppercase tracking-[0.3em] text-neon-red">
               ◢ Tape Ejected ◣
             </p>
             <h2 className="mt-2 font-display text-3xl uppercase text-cream sm:text-4xl">
               Final Score:{" "}
               <span className="text-neon-orange">{String(score).padStart(3, "0")}</span>
             </h2>
-            <p className="mt-2 font-hud text-lg text-cream-dim">
+            <p className="mt-2 font-body text-lg text-cream-dim">
               {roundsWon} round{roundsWon === 1 ? "" : "s"} won · ran out of quotes for{" "}
               <span className="text-cream">{phase.title}</span>{" "}
               <span className="text-cream-smoke">({phase.year})</span>
@@ -978,7 +978,7 @@ export default function Page() {
               href={`https://www.imdb.com/title/${phase.imdbId}/`}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-block font-hud text-lg text-neon-orange hover:underline"
+              className="mt-2 inline-block font-body text-lg text-neon-orange hover:underline"
             >
               ▶ View on IMDb
             </a>
@@ -986,7 +986,7 @@ export default function Page() {
 
           {phase.outcomes.length > 0 && (
             <div className="tape-border bg-ink-veil/40 p-5">
-              <div className="font-hud text-base uppercase tracking-[0.25em] text-cream-dim">
+              <div className="font-body text-base uppercase tracking-[0.25em] text-cream-dim">
                 ▮ Round breakdown
               </div>
               <div className="mt-3 font-mono text-3xl tracking-wide">
@@ -997,19 +997,19 @@ export default function Page() {
               <div className="mt-3 flex items-center gap-3">
                 <button
                   onClick={() => void shareResults()}
-                  className="press-btn bg-transparent px-4 py-2 font-hud text-base uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
+                  className="press-btn bg-transparent px-4 py-2 font-body text-base uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
                 >
                   {canNativeShare ? "▶ Share results" : "▶ Copy results"}
                 </button>
                 {shareToast && (
-                  <span className="font-hud text-base text-neon-teal">{shareToast}</span>
+                  <span className="font-body text-base text-neon-teal">{shareToast}</span>
                 )}
               </div>
             </div>
           )}
 
           <div className="space-y-3">
-            <h3 className="hud-rule pb-1 font-hud text-base uppercase tracking-[0.25em] text-cream">
+            <h3 className="hud-rule pb-1 font-body text-base uppercase tracking-[0.25em] text-cream">
               ▮ Quote{phase.quotes.length > 1 ? "s" : ""} from the final round
             </h3>
             {phase.quotes.map((q, i) => (
@@ -1023,10 +1023,10 @@ export default function Page() {
               className="tape-border-pink shadow-vhs-pink space-y-3 bg-ink-veil/40 p-5"
             >
               <div>
-                <p className="font-hud text-lg uppercase tracking-[0.2em] text-neon-pink">
+                <p className="font-body text-lg uppercase tracking-[0.2em] text-neon-pink">
                   ▶ Score {score} — make the board?
                 </p>
-                <p className="mt-1 font-hud text-base text-cream-dim">
+                <p className="mt-1 font-body text-base text-cream-dim">
                   Up to {NAME_MAX_LEN} letters or digits. No spaces or specials.
                 </p>
               </div>
@@ -1046,27 +1046,27 @@ export default function Page() {
                 <button
                   type="submit"
                   disabled={!submitName.trim() || submitState.kind === "submitting"}
-                  className="press-btn bg-neon-pink px-4 py-2 font-hud text-lg uppercase tracking-wider text-ink-deep tape-border-pink disabled:cursor-not-allowed disabled:bg-ink-veil disabled:text-cream-smoke sm:shrink-0"
+                  className="press-btn bg-neon-pink px-4 py-2 font-body text-lg uppercase tracking-wider text-ink-deep tape-border-pink disabled:cursor-not-allowed disabled:bg-ink-veil disabled:text-cream-smoke sm:shrink-0"
                 >
                   {submitState.kind === "submitting" ? "Sending…" : "▶ Submit"}
                 </button>
               </div>
               {submitState.kind === "error" && (
-                <p className="font-hud text-base text-neon-red">{submitState.message}</p>
+                <p className="font-body text-base text-neon-red">{submitState.message}</p>
               )}
             </form>
           )}
 
           {submitState.kind === "submitted" && (
             <div className="tape-border bg-neon-teal/10 p-5" style={{ borderColor: "#3dd8ce" }}>
-              <p className="font-hud text-lg uppercase tracking-wider text-neon-teal">
+              <p className="font-body text-lg uppercase tracking-wider text-neon-teal">
                 {submitState.rank
                   ? `◢ Submitted — #${submitState.rank} on the board ◣`
                   : "Submitted — didn't crack the top 20"}
               </p>
               <Link
                 href="/leaderboard"
-                className="mt-2 inline-block font-hud text-base text-neon-orange hover:underline"
+                className="mt-2 inline-block font-body text-base text-neon-orange hover:underline"
               >
                 ▶ View leaderboard
               </Link>
@@ -1093,7 +1093,7 @@ export default function Page() {
       {phase.kind === "error" && (
         <section className="space-y-4">
           <div className="tape-border bg-neon-red/10 p-6" style={{ borderColor: "#ff5160" }}>
-            <p className="font-hud text-lg uppercase tracking-[0.3em] text-neon-red">
+            <p className="font-body text-lg uppercase tracking-[0.3em] text-neon-red">
               ◢ Tracking Error ◣
             </p>
             <p className="mt-2 font-body text-base text-cream">{phase.message}</p>
@@ -1108,28 +1108,34 @@ export default function Page() {
       )}
 
       <footer className="mt-20 border-t-2 border-dashed border-cream/20 pt-6 text-center">
-        <p className="font-hud text-base uppercase tracking-[0.25em] text-cream-dim">
-          ◢ Created by{" "}
-          <a
-            href="https://github.com/mrgarris0n"
-            target="_blank"
-            rel="noreferrer"
-            className="text-cream hover:text-neon-pink"
-          >
-            mrgarris0n
-          </a>
-          {" · "}
-          <a
-            href={`${GITHUB_REPO_URL}/issues/new`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-cream hover:text-neon-pink"
-          >
-            Report an issue
-          </a>{" "}
-          ◣
-        </p>
-        <p className="mt-1 font-hud text-sm text-cream-smoke">
+        <div className="flex flex-col items-center justify-center gap-1 font-body text-base uppercase tracking-[0.25em] text-cream-dim sm:flex-row sm:gap-3">
+          <span>
+            ◢ Created by{" "}
+            <a
+              href="https://github.com/mrgarris0n"
+              target="_blank"
+              rel="noreferrer"
+              className="text-cream hover:text-neon-pink"
+            >
+              mrgarris0n
+            </a>
+            {" ◣"}
+          </span>
+          <span aria-hidden className="hidden text-cream-smoke sm:inline">·</span>
+          <span>
+            ◢{" "}
+            <a
+              href={`${GITHUB_REPO_URL}/issues/new`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-cream hover:text-neon-pink"
+            >
+              Report an issue
+            </a>
+            {" ◣"}
+          </span>
+        </div>
+        <p className="mt-1 font-body text-sm text-cream-smoke">
           v{APP_VERSION}
           {COMMIT_SHA_SHORT && (
             <>

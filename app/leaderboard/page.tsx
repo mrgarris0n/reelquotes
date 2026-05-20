@@ -53,7 +53,7 @@ export default function LeaderboardPage() {
     <main className="mx-auto max-w-4xl px-5 pb-16 pt-8 sm:px-6 sm:pt-12">
       <header className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="font-hud text-base uppercase tracking-[0.3em] text-neon-pink">
+          <p className="font-body text-base uppercase tracking-[0.3em] text-neon-pink">
             ◤ Top 20 ◢
           </p>
           <h1 className="crt-shift font-display text-4xl uppercase leading-none text-cream sm:text-5xl">
@@ -62,7 +62,7 @@ export default function LeaderboardPage() {
         </div>
         <Link
           href="/"
-          className="press-btn bg-transparent px-4 py-2 font-hud text-lg uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
+          className="press-btn bg-transparent px-4 py-2 font-body text-lg uppercase tracking-wider text-cream tape-border hover:text-neon-orange"
         >
           ◀◀ Back
         </Link>
@@ -77,7 +77,7 @@ export default function LeaderboardPage() {
               type="button"
               onClick={() => setActive(f.id)}
               className={
-                "chip border-2 px-3 py-1 font-hud text-base uppercase tracking-wider transition " +
+                "chip border-2 px-3 py-1 font-body text-base uppercase tracking-wider transition " +
                 (isActive
                   ? "border-cream bg-neon-pink text-ink-deep"
                   : "border-cream/40 bg-transparent text-cream hover:text-ink-deep")
@@ -96,13 +96,13 @@ export default function LeaderboardPage() {
       )}
 
       {!error && loading && (
-        <p className="font-hud text-xl uppercase tracking-[0.3em] text-cream-dim">
+        <p className="font-body text-xl uppercase tracking-[0.3em] text-cream-dim">
           ░ Reading tape ░░░░ ▓▓
         </p>
       )}
 
       {!error && !loading && entries.length === 0 && (
-        <p className="font-hud text-lg text-cream-dim">
+        <p className="font-body text-lg text-cream-dim">
           ▶ No entries yet
           {active !== "all" ? ` for ${active} mode` : ""} — be the first to make the board.
         </p>
@@ -130,7 +130,7 @@ export default function LeaderboardPage() {
                 </span>
                 <span
                   className={
-                    "shrink-0 font-hud text-xl " +
+                    "shrink-0 font-body text-xl " +
                     (i < 3 ? "text-neon-pink" : "text-cream-smoke")
                   }
                   aria-hidden
@@ -139,7 +139,7 @@ export default function LeaderboardPage() {
                 </span>
                 <span className="truncate font-body text-lg text-cream">{e.name}</span>
                 {active === "all" && (
-                  <span className="hidden shrink-0 border border-cream/30 px-2 py-0.5 font-hud text-sm uppercase tracking-wider text-cream-dim sm:inline">
+                  <span className="hidden shrink-0 border border-cream/30 px-2 py-0.5 font-body text-sm uppercase tracking-wider text-cream-dim sm:inline">
                     {e.difficulty}
                   </span>
                 )}
@@ -148,7 +148,7 @@ export default function LeaderboardPage() {
                 <span className="font-display text-2xl tabular-nums text-neon-pink">
                   {e.score}
                 </span>
-                <span className="hidden font-hud text-base text-cream-smoke sm:inline">
+                <span className="hidden font-body text-base text-cream-smoke sm:inline">
                   {e.roundsWon} rd{e.roundsWon === 1 ? "" : "s"}
                 </span>
               </div>

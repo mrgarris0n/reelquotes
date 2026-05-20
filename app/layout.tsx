@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { BotIdClient } from "botid/client";
-import { Bungee, Space_Mono, VT323 } from "next/font/google";
+import { Bungee, Space_Mono } from "next/font/google";
 import "./globals.css";
 
 const display = Bungee({
@@ -14,12 +14,6 @@ const body = Space_Mono({
   weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-body",
-  display: "swap",
-});
-const hud = VT323({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-hud",
   display: "swap",
 });
 
@@ -35,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${display.variable} ${body.variable} ${hud.variable}`}
+      className={`${display.variable} ${body.variable}`}
     >
       <head>
         <BotIdClient protect={protectedRoutes} />
