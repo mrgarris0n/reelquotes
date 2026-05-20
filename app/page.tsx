@@ -9,7 +9,7 @@ import { totalHintCost, type HintsUsed } from "@/lib/hints";
 import { POINTS_PER_QUOTE } from "@/lib/scoring";
 import { NAME_MAX_LEN, sanitizeName } from "@/lib/name";
 
-const APP_VERSION = pkg.version;
+const APP_VERSION = pkg.version.split(".").slice(0, 2).join(".");
 const COMMIT_SHA = process.env.COMMIT_SHA ?? "";
 const COMMIT_SHA_SHORT = COMMIT_SHA ? COMMIT_SHA.slice(0, 7) : "";
 const GITHUB_REPO_URL = "https://github.com/mrgarris0n/reelquotes";
