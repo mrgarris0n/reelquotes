@@ -42,3 +42,47 @@ GFDL). In accordance with that license:
 The application **source code** is separately licensed under the MIT License
 (see [`LICENSE`](./LICENSE)); the CC BY-SA obligation attaches only to the
 quote *content*, not the code.
+
+## Fonts (SIL Open Font License)
+
+The interface uses three open-source fonts from Google Fonts, loaded via
+`next/font/google`. The SIL OFL allows use in any product without visible
+credit; we credit them here voluntarily.
+
+- [**Bungee**](https://fonts.google.com/specimen/Bungee) — display wordmark,
+  primary buttons.
+- [**Space Mono**](https://fonts.google.com/specimen/Space+Mono) — body text,
+  quotes, input fields.
+- [**VT323**](https://fonts.google.com/specimen/VT323) — HUD chrome,
+  uppercase labels, the CRT/HUD aesthetic.
+
+All three are released under the
+[SIL Open Font License 1.1](https://openfontlicense.org/).
+
+## Open-source dependencies
+
+The application stack is built on permissively-licensed open-source software.
+No runtime attribution is legally required for any of these, but they deserve
+the credit:
+
+- [**Next.js**](https://nextjs.org/) (MIT) — framework and build system.
+- [**React**](https://react.dev/) (MIT) — UI library.
+- [**Tailwind CSS**](https://tailwindcss.com/) (MIT) — styling.
+- [**fastest-levenshtein**](https://github.com/ka-weihe/fastest-levenshtein)
+  (MIT) — fuzzy title matching.
+- [**@vercel/blob**](https://vercel.com/docs/vercel-blob) (Apache-2.0) —
+  leaderboard storage.
+- [**@vercel/analytics**](https://vercel.com/docs/analytics) (MPL-2.0) —
+  traffic metrics.
+- [**botid**](https://vercel.com/docs/botid) (Apache-2.0) — leaderboard
+  bot detection.
+- [**tsx**](https://github.com/privatenumber/tsx) (MIT),
+  [**TypeScript**](https://www.typescriptlang.org/) (Apache-2.0) — tooling.
+
+The application is deployed on [Vercel](https://vercel.com/).
+
+## AI assistance
+
+Substantial portions of this codebase were authored with the help of
+Anthropic's Claude. Treat that the same way you'd treat any other
+contribution: useful when verified, fallible when not.
