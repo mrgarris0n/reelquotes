@@ -36,28 +36,32 @@ function stripTemplates(s: string): string {
 
 export function stripMarkup(input: string): string {
   let s = input;
-  s = s.replace(/<!--[\s\S]*?-->/g, "");
-  s = s.replace(/<ref[^>]*\/>/gi, "");
-  s = s.replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, "");
+  // Every tag-shaped strip below is iterated to a fixed point. A single
+  // pass can leave a re-formed tag behind on nested inputs like
+  // `<scr<script>ipt>` or `<!--<!--inner-->-->`; iterating until the
+  // string stops shrinking closes that gap. (XSS risk is already zero
+  // — output flows into quotes.json and renders as React text content,
+  // which auto-escapes — but iterating addresses CodeQL js/bad-tag-filter
+  // and gives us defense in depth.)
+  const iter = (re: RegExp, replacement = ""): void => {
+    let prev: string;
+    do {
+      prev = s;
+      s = s.replace(re, replacement);
+    } while (s !== prev);
+  };
+  iter(/<!--[\s\S]*?-->/g);
+  iter(/<ref[^>]*\/>/gi);
+  iter(/<ref[^>]*>[\s\S]*?<\/ref>/gi);
   s = stripTemplates(s);
   s = s.replace(/\[\[(?:File|Image):[\s\S]*?\]\]/gi, "");
   s = s.replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, "$1"); // [[target|label]] -> label
   s = s.replace(/\[\[([^\]]*)\]\]/g, "$1"); // [[target]] -> target
   s = s.replace(/\[(?:https?:|ftp:)\/\/\S+\s+([^\]]+)\]/g, "$1"); // [url label] -> label
   s = s.replace(/\[(?:https?:|ftp:)\/\/\S+\]/g, ""); // bare [url] -> ""
-  s = s.replace(/<br\s*\/?>/gi, " ");
+  iter(/<br\s*\/?>/gi, " ");
   s = s.replace(/'''''|'''|''/g, ""); // bold/italic markers
-  // Strip any remaining HTML tags. Iterate to a fixed point so nested
-  // constructs like `<scr<script>ipt>` — where a single pass leaves a
-  // re-formed tag behind — can't survive. (The output flows into quotes.json
-  // and is rendered as React text content, which auto-escapes, so the real
-  // XSS risk is already zero; this addresses CodeQL js/bad-tag-filter and
-  // gives us defense in depth.)
-  let prevTags: string;
-  do {
-    prevTags = s;
-    s = s.replace(/<\/?[a-z][^>]*>/gi, "");
-  } while (s !== prevTags);
+  iter(/<\/?[a-z][^>]*>/gi);
   for (const [k, v] of Object.entries(ENTITIES)) s = s.split(k).join(v);
   s = s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
   return balanceQuotes(repairOrphanBrackets(s));

@@ -20,6 +20,28 @@ test("parseWikiquote returns [] for a redirect", () => {
   assert.deepEqual(parseWikiquote("#REDIRECT [[Elsewhere]]"), []);
 });
 
+test("stripMarkup: comment opener never survives nesting", () => {
+  // HTML5 ends comments at the first `-->`, so a stray trailing `-->`
+  // is just text. What matters is that the `<!--` opener doesn't escape.
+  const out = stripMarkup("a <!--<!-- inner -->--> b");
+  assert.ok(!/<!--/.test(out), `<!-- survived: ${out}`);
+});
+
+test("stripMarkup: nested <ref> tags leave nothing behind", () => {
+  // The body-ref strip alone can't handle this — iteration does.
+  assert.equal(stripMarkup("hello <r<ref/>ef/> world"), "hello world");
+  assert.equal(
+    stripMarkup("hello <re<ref>cite</ref>f>body</ref> world"),
+    "hello world",
+  );
+});
+
+test("stripMarkup: nested <br> collapses to whitespace", () => {
+  // `<<br>br>` -> `<br>` after one pass; iteration strips it too.
+  const out = stripMarkup("hello<<br>br>world");
+  assert.ok(!/<br/i.test(out), `<br> survived: ${out}`);
+});
+
 test("stripMarkup leaves no <script> behind, even nested (CodeQL js/bad-tag-filter)", () => {
   // A single-pass regex strip can leave a re-formed tag (`<scr<script>ipt>`
   // -> `<script>` after one pass). Iterating to a fixed point closes that
