@@ -144,10 +144,22 @@ function usable(text: string): boolean {
   return true;
 }
 
+// Optional stage-direction action(s) between the closing `'''` of a speaker
+// name and the `:` — `(addressing Mike)`, `[adjusting glasses]`, or italic
+// `''[in Anna's body]''` (italic body tolerates single apostrophes). Used by
+// both SPEAKER_RE and DL_COLON_AFTER_RE.
+const SPEAKER_ACTION =
+  "(?:\\([^\\n)]*\\)\\s*|\\[[^\\n\\]]*\\]\\s*|''(?:[^'\\n]|'(?!'))*''\\s*)*";
+
 // Pull `'''Speaker:'''`-style segments out of a single line. Returns either a
 // single solo line (no speaker markup) or multiple speaker lines (an inline
 // exchange, e.g. `'''A:''' hi '''B:''' bye`).
-const SPEAKER_RE = /'''\s*([^'\n]+?)\s*'''\s*:?\s*/g;
+// Speaker-name body tolerates single `'` (nicknames like `'Russ'`, possessives
+// like `Mary's`, contractions like `O'Brien`) but terminates at `'''`.
+const SPEAKER_RE = new RegExp(
+  `'''\\s*((?:[^'\\n]|'(?!''))+?)\\s*'''\\s*${SPEAKER_ACTION}:?\\s*`,
+  "g",
+);
 
 function splitInlineSpeakers(raw: string): { speaker: string; text: string }[] | null {
   SPEAKER_RE.lastIndex = 0;
@@ -181,6 +193,10 @@ function classify(heading: string): Section["kind"] {
 }
 
 function splitSections(wikitext: string): Section[] {
+  // Treat <br> as a hard line break so multi-speaker single-source-line
+  // patterns (`:'''A''': hi<br>'''B''': hi back`, common in series season
+  // subpages) split into one line per speaker before reaching the parser.
+  wikitext = wikitext.replace(/<br\s*\/?>/gi, "\n");
   const lines = wikitext.split(/\r?\n/);
   const sections: Section[] = [];
   // Implicit lead section so a page that opens straight into quotes
@@ -213,8 +229,14 @@ function splitSections(wikitext: string): Section[] {
 // either after the closing `'''` (`:'''Walter''': text`, `'''Brody''': text`)
 // or inside it (`'''Neo:''' text`). Intro prose like `'''The Matrix''' is a
 // 1999 film.` has no such colon and must NOT match.
-const DL_COLON_AFTER_RE = /^\s*[:*]*\s*'''\s*([^'\n]+?)\s*'''\s*:\s*(.*)$/;
-const DL_COLON_IN_RE = /^\s*[:*]*\s*'''\s*([^'\n]+?)\s*:\s*'''\s*(.*)$/;
+// The name body allows single `'` (nicknames `'Ron'`, possessives `Mary's`,
+// `O'Brien`) but stops at `'''` so the closer is still detected.
+// SPEAKER_ACTION (defined above) lets the regex tolerate stage-direction
+// content between the closing `'''` and the `:`.
+const DL_COLON_AFTER_RE = new RegExp(
+  `^\\s*[:*]*\\s*'''\\s*((?:[^'\\n]|'(?!''))+?)\\s*'''\\s*${SPEAKER_ACTION}:\\s*(.*)$`,
+);
+const DL_COLON_IN_RE = /^\s*[:*]*\s*'''\s*((?:[^'\n]|'(?!''))+?)\s*:\s*'''\s*(.*)$/;
 const DL_SEMICOLON_RE = /^\s*;\s*([^:]+?)\s*:\s*(.*)$/;
 const SEPARATOR_RE = /^\s*(?:----+|<hr\b[^>]*>)\s*$/i;
 // Series subpages open with a season-navigation header that looks like a
@@ -306,6 +328,20 @@ function parseSection(s: Section, quotes: Quote[]): void {
     if (dl) {
       // A speaker line ends any solo bullet (mode switch to dialogue).
       flushSolo();
+      // A single source line can contain multiple `'''X''':` speakers
+      // (inline exchange, or already merged before our <br>→\n split). When
+      // splitInlineSpeakers finds >1 speaker on this line, fan them out so
+      // each becomes its own dialogue line rather than getting concatenated
+      // into the first speaker's text.
+      const inline = splitInlineSpeakers(line);
+      if (inline && inline.length > 1) {
+        for (const ln of inline) {
+          const sp = ln.speaker.replace(/:$/, "").trim();
+          if (NAV_SPEAKER_RE.test(sp)) continue;
+          if (sp && ln.text) block.push({ speaker: sp, text: ln.text });
+        }
+        continue;
+      }
       const speaker = stripMarkup(dl[1]!).replace(/:$/, "").trim();
       if (NAV_SPEAKER_RE.test(speaker)) {
         flushBlock(); // season-nav header — not dialogue

@@ -409,3 +409,109 @@ test("repairOrphanBrackets: idempotent", () => {
   const twice = repairOrphanBrackets(once);
   assert.equal(once, twice);
 });
+
+test("dialogue: speaker with apostrophe-quoted nickname", () => {
+  const wt = `== Dialogue ==
+:'''Ronald 'Ron' Thompson''': Shut up, wimp!
+:'''Nick''': Me? It was his ball!
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines.length, 2);
+  assert.equal(q[0]!.lines[0]!.speaker, "Ronald 'Ron' Thompson");
+  assert.equal(q[0]!.lines[0]!.text, "Shut up, wimp!");
+  assert.equal(q[0]!.lines[1]!.speaker, "Nick");
+});
+
+test("dialogue: speaker with comma-suffix title (Sr., Jr.)", () => {
+  const wt = `== Dialogue ==
+:'''Russell 'Russ' Thompson, Sr.''': Blew up my kids?
+:'''Wayne''': No, no!
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Russell 'Russ' Thompson, Sr.");
+  assert.equal(q[0]!.lines[0]!.text, "Blew up my kids?");
+});
+
+test("dialogue: speaker with O'Brien-style apostrophe", () => {
+  const wt = `== Dialogue ==
+:'''O'Brien''': Yes, Captain.
+:'''Picard''': Make it so.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "O'Brien");
+  assert.equal(q[0]!.lines[1]!.speaker, "Picard");
+});
+
+test("dialogue: speaker with possessive apostrophe", () => {
+  const wt = `== Dialogue ==
+:'''Mary's mom''': Don't be late.
+:'''Mary''': I won't!
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Mary's mom");
+  assert.equal(q[0]!.lines[1]!.speaker, "Mary");
+});
+
+test("character section: inline split with apostrophe-quoted nickname", () => {
+  const wt = `== Other ==
+* '''Russell 'Russ' Thompson, Sr.''': The coach put me on these babies, you know what happened?
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Russell 'Russ' Thompson, Sr.");
+  assert.match(q[0]!.lines[0]!.text, /^The coach put me/);
+});
+
+test("dialogue: <br>-merged multi-speaker line splits into two lines", () => {
+  const wt = `== Dialogue ==
+:'''Gloria''': Ma, anything interesting happen to you today?<br>'''Edith''': Actually, something interesting did happen today.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines.length, 2);
+  assert.equal(q[0]!.lines[0]!.speaker, "Gloria");
+  assert.equal(q[0]!.lines[0]!.text, "Ma, anything interesting happen to you today?");
+  assert.equal(q[0]!.lines[1]!.speaker, "Edith");
+  assert.match(q[0]!.lines[1]!.text, /^Actually, something interesting/);
+});
+
+test("dialogue: parenthetical action between '''name''' and colon", () => {
+  const wt = `== Dialogue ==
+:'''Archie''' (addressing Mike): Poland gave us delicate dishes.
+:'''Gloria''': Polish sausage is very good.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Archie");
+  assert.equal(q[0]!.lines[0]!.text, "Poland gave us delicate dishes.");
+  assert.equal(q[0]!.lines[1]!.speaker, "Gloria");
+});
+
+test("dialogue: italic action between '''name''' and colon", () => {
+  const wt = `== Dialogue ==
+:'''Edith''' ''(quietly)'': I think we should have them over more often.
+:'''Wayne''': I think that went well.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Edith");
+  assert.equal(q[0]!.lines[0]!.text, "I think we should have them over more often.");
+});
+
+test("intro prose with bold title is not parsed as speaker", () => {
+  // Regression guard: relaxing the speaker-name pattern must not turn this
+  // into a (Speaker, text) pair. There's no `:` after the closing `'''`.
+  const wt = `== Lead ==
+'''The Matrix''' is a 1999 science fiction film.
+`;
+  const q = parseWikiquote(wt);
+  // The lead text is too short / not bullet-formatted; in practice nothing
+  // is extracted. Critically: it does NOT mis-attribute "The Matrix" as a
+  // speaker.
+  assert.ok(q.every((x) => x.lines.every((l) => l.speaker !== "The Matrix")));
+});
