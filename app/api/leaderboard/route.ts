@@ -7,7 +7,7 @@ import type { Difficulty, LeaderboardEntry } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID: Difficulty[] = ["easy", "normal", "hard"];
+const VALID: Difficulty[] = ["easy", "normal", "hard", "nightmare"];
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

@@ -27,9 +27,10 @@ const KINDS: { id: Kind; label: string }[] = [
 ];
 
 const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
-  { id: "easy", label: "Easy", hint: "Real character names · year shown" },
-  { id: "normal", label: "Normal", hint: "Anonymized characters · year shown" },
-  { id: "hard", label: "Hard", hint: "Anonymized characters · no year" },
+  { id: "easy", label: "G", hint: "Real character names · year shown" },
+  { id: "normal", label: "PG-13", hint: "Anonymized characters · year shown" },
+  { id: "hard", label: "R", hint: "Anonymized characters · no year" },
+  { id: "nightmare", label: "NC-17", hint: "Anonymized · no year · no hints" },
 ];
 
 type Phase =
@@ -748,6 +749,7 @@ export default function Page() {
           </div>
 
           {(() => {
+            if (difficulty === "nightmare") return null;
             const canShowYear = difficulty === "hard" && !phase.hintsUsed.year;
             const canShowGenre = !phase.hintsUsed.genre;
             const canShowTitle = !phase.hintsUsed.title;

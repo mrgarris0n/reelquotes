@@ -72,7 +72,14 @@ export interface Filters {
 
 export type RoundStatus = "active" | "won" | "lost";
 
-export type Difficulty = "easy" | "normal" | "hard";
+export type Difficulty = "easy" | "normal" | "hard" | "nightmare";
+
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  easy: "G",
+  normal: "PG-13",
+  hard: "R",
+  nightmare: "NC-17",
+};
 
 export type HintKind = "year" | "genre" | "title";
 

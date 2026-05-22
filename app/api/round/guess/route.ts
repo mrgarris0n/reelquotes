@@ -116,6 +116,6 @@ export async function POST(req: Request) {
     quote: round.quotes[nextIndex],
     index: nextIndex,
     total: round.quotes.length,
-    year: difficulty === "hard" ? undefined : round.year,
+    year: difficulty === "hard" || difficulty === "nightmare" ? undefined : round.year,
   });
 }

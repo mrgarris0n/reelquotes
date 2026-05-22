@@ -9,7 +9,8 @@ import type { Difficulty, Filters, RoundState, ScoreState } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID_DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard"];
+const VALID_DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard", "nightmare"];
+const YEAR_HIDDEN: Difficulty[] = ["hard", "nightmare"];
 
 function normalizeDifficulty(raw: unknown, fallback: Difficulty): Difficulty {
   return typeof raw === "string" && VALID_DIFFICULTIES.includes(raw as Difficulty)
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
       index: 0,
       total: round.quotes.length,
       difficulty,
-      year: difficulty === "hard" ? undefined : round.year,
+      year: YEAR_HIDDEN.includes(difficulty) ? undefined : round.year,
     });
   } catch (err) {
     console.error(`Failed to load quotes for ${movie.id}:`, err);

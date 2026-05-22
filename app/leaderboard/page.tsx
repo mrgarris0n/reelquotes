@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Difficulty, LeaderboardEntry } from "@/lib/types";
+import { DIFFICULTY_LABEL, type Difficulty, type LeaderboardEntry } from "@/lib/types";
 
 const FILTERS: { id: Difficulty | "all"; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "easy", label: "Easy" },
-  { id: "normal", label: "Normal" },
-  { id: "hard", label: "Hard" },
+  { id: "easy", label: DIFFICULTY_LABEL.easy },
+  { id: "normal", label: DIFFICULTY_LABEL.normal },
+  { id: "hard", label: DIFFICULTY_LABEL.hard },
+  { id: "nightmare", label: DIFFICULTY_LABEL.nightmare },
 ];
 
 const RANK_GLYPH = (i: number) => (i === 0 ? "★" : i === 1 ? "◆" : i === 2 ? "◇" : "·");
@@ -140,7 +141,7 @@ export default function LeaderboardPage() {
                 <span className="truncate font-body text-lg text-cream">{e.name}</span>
                 {active === "all" && (
                   <span className="hidden shrink-0 border border-cream/30 px-2 py-0.5 font-body text-sm uppercase tracking-wider text-cream-dim sm:inline">
-                    {e.difficulty}
+                    {DIFFICULTY_LABEL[e.difficulty] ?? e.difficulty}
                   </span>
                 )}
               </div>

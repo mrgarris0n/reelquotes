@@ -25,6 +25,9 @@ export async function POST(req: Request) {
   if (isRoundExpired(round.startedAt)) {
     return NextResponse.json({ error: "Round expired" }, { status: 410 });
   }
+  if (round.difficulty === "nightmare") {
+    return NextResponse.json({ error: "Hints disabled on NC-17" }, { status: 403 });
+  }
 
   const hint = body.hint as HintKind | undefined;
   if (!hint || !VALID_HINTS.includes(hint)) {
