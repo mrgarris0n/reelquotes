@@ -8,7 +8,10 @@ const MAX_ENTRIES = 20;
 
 async function readEntries(): Promise<LeaderboardEntry[]> {
   try {
-    const result = await get(BLOB_KEY, { access: "private" });
+    // useCache:false bypasses the @vercel/blob SDK's read cache so a fresh
+    // submission is visible to the very next GET — without this, a player
+    // who just submitted has to reload /leaderboard to see their entry.
+    const result = await get(BLOB_KEY, { access: "private", useCache: false });
     if (!result || result.statusCode !== 200) return [];
     const text = await new Response(result.stream).text();
     const parsed = JSON.parse(text) as LeaderboardEntry[];
