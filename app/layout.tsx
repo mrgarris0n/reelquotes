@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { BotIdClient } from "botid/client";
 import { Bungee, Space_Mono } from "next/font/google";
+import { JumpToTop } from "@/components/JumpToTop";
 import "./globals.css";
 
 const display = Bungee({
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-body min-h-screen">
         <div className="vhs-vignette" aria-hidden />
         {children}
+        <JumpToTop />
         <Analytics />
       </body>
     </html>
