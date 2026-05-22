@@ -47,7 +47,17 @@ export function stripMarkup(input: string): string {
   s = s.replace(/\[(?:https?:|ftp:)\/\/\S+\]/g, ""); // bare [url] -> ""
   s = s.replace(/<br\s*\/?>/gi, " ");
   s = s.replace(/'''''|'''|''/g, ""); // bold/italic markers
-  s = s.replace(/<\/?[a-z][^>]*>/gi, ""); // remaining HTML tags
+  // Strip any remaining HTML tags. Iterate to a fixed point so nested
+  // constructs like `<scr<script>ipt>` — where a single pass leaves a
+  // re-formed tag behind — can't survive. (The output flows into quotes.json
+  // and is rendered as React text content, which auto-escapes, so the real
+  // XSS risk is already zero; this addresses CodeQL js/bad-tag-filter and
+  // gives us defense in depth.)
+  let prevTags: string;
+  do {
+    prevTags = s;
+    s = s.replace(/<\/?[a-z][^>]*>/gi, "");
+  } while (s !== prevTags);
   for (const [k, v] of Object.entries(ENTITIES)) s = s.split(k).join(v);
   s = s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
   return balanceQuotes(repairOrphanBrackets(s));

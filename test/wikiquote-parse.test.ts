@@ -20,6 +20,17 @@ test("parseWikiquote returns [] for a redirect", () => {
   assert.deepEqual(parseWikiquote("#REDIRECT [[Elsewhere]]"), []);
 });
 
+test("stripMarkup leaves no <script> behind, even nested (CodeQL js/bad-tag-filter)", () => {
+  // A single-pass regex strip can leave a re-formed tag (`<scr<script>ipt>`
+  // -> `<script>` after one pass). Iterating to a fixed point closes that
+  // gap. Stray non-tag text fragments (`ipt>`) are harmless — React escapes
+  // them at render time.
+  const out = stripMarkup("hello <scr<script>ipt>alert(1)</script> world");
+  assert.ok(!/<\/?script/i.test(out), `<script> survived: ${out}`);
+  const out2 = stripMarkup("<<center>center>text<</center>/center>");
+  assert.ok(!/<\/?center/i.test(out2), `<center> survived: ${out2}`);
+});
+
 test("stripMarkup removes wiki/HTML noise", () => {
   assert.equal(stripMarkup("''italic'' and '''bold'''"), "italic and bold");
   assert.equal(stripMarkup("[[Neo (The Matrix)|Neo]] wakes up"), "Neo wakes up");
