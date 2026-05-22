@@ -50,14 +50,42 @@ export function stripMarkup(input: string): string {
   s = s.replace(/<\/?[a-z][^>]*>/gi, ""); // remaining HTML tags
   for (const [k, v] of Object.entries(ENTITIES)) s = s.split(k).join(v);
   s = s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
-  // Strip bracketed stage directions ([picking up the phone], [exits]) — runs
-  // AFTER the [url …] / [[wikilink]] replacements above so only true asides
-  // remain. Iterate so nested brackets ([outer [inner] outer]) collapse fully.
+  return repairOrphanBrackets(s);
+}
+
+/**
+ * Strip stage-direction brackets and clean up orphans.
+ *
+ * Handles four cases:
+ *   1. Balanced `[picking up the phone]` (iterated so nested brackets fully
+ *      collapse).
+ *   2. Mixed `[stage direction)` / `[stage direction}` — Wikiquote editor
+ *      typos where the closer is wrong; treated as if it were `]`.
+ *   3. Orphan opening `[` with no closer — when followed by whitespace, drop
+ *      just the bracket (bare `[ ` artifact); otherwise drop from `[` to the
+ *      end of the string (stage-direction prose with no closing `]` more
+ *      likely than dialogue beginning with `[`).
+ *   4. Orphan closing `]` — strip the character.
+ *
+ * Idempotent.
+ */
+export function repairOrphanBrackets(s: string): string {
   let prev: string;
   do {
     prev = s;
     s = s.replace(/\[[^[\]]*\]/g, " ");
   } while (s !== prev);
+  s = s.replace(/\[[^\[\]]*[)}]/g, " ");
+  while (true) {
+    const idx = s.indexOf("[");
+    if (idx === -1) break;
+    if (idx + 1 < s.length && /\s/.test(s[idx + 1]!)) {
+      s = s.slice(0, idx) + " " + s.slice(idx + 1);
+    } else {
+      s = s.slice(0, idx);
+    }
+  }
+  s = s.replace(/\]/g, " ");
   return s.replace(/\s+/g, " ").trim();
 }
 

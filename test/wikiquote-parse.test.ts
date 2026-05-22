@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseWikiquote, isRedirect, stripMarkup, trimLongLines, chunkDialogue } from "../lib/wikiquote-parse";
+import {
+  chunkDialogue,
+  isRedirect,
+  parseWikiquote,
+  repairOrphanBrackets,
+  stripMarkup,
+  trimLongLines,
+} from "../lib/wikiquote-parse";
 
 test("isRedirect detects redirect pages", () => {
   assert.equal(isRedirect("#REDIRECT [[The Matrix (franchise)]]"), true);
@@ -324,4 +331,81 @@ test("parseWikiquote: very long Dialogue block splits into multiple quotes", () 
   // 14 lines / 6 per chunk = 3 quotes (6 + 6 + 2)
   assert.equal(q.length, 3);
   assert.ok(q.every((x) => x.lines.length <= 7));
+});
+
+test("repairOrphanBrackets: balanced [...] is removed", () => {
+  assert.equal(repairOrphanBrackets("a [picks up phone] b"), "a b");
+});
+
+test("repairOrphanBrackets: nested balanced collapses fully", () => {
+  assert.equal(repairOrphanBrackets("a [outer [inner] outer] b"), "a b");
+});
+
+test("repairOrphanBrackets: mixed [...) is removed (Wikiquote typo)", () => {
+  assert.equal(repairOrphanBrackets("[Busy work at a mound of clay) It's bad"), "It's bad");
+});
+
+test("repairOrphanBrackets: mixed [...} is removed (Wikiquote typo)", () => {
+  assert.equal(repairOrphanBrackets("look at... [Bear comes into room}"), "look at...");
+});
+
+test("repairOrphanBrackets: orphan [ followed by space drops just the bracket", () => {
+  assert.equal(
+    repairOrphanBrackets("Hey Phoebe! Phoebe? [ Hey Phoebe."),
+    "Hey Phoebe! Phoebe? Hey Phoebe.",
+  );
+});
+
+test("repairOrphanBrackets: orphan [ followed by stage-direction word drops to end", () => {
+  assert.equal(
+    repairOrphanBrackets("Like I haven't slept in three days? [covers up his wound."),
+    "Like I haven't slept in three days?",
+  );
+});
+
+test("repairOrphanBrackets: orphan [ at start of string with no closer empties string", () => {
+  assert.equal(repairOrphanBrackets("[shouting You shouldn't have done it!"), "");
+});
+
+test("repairOrphanBrackets: orphan ] at end is stripped", () => {
+  assert.equal(repairOrphanBrackets("Ah. The Chronosphere.]"), "Ah. The Chronosphere.");
+});
+
+test("repairOrphanBrackets: double orphan ]] is stripped", () => {
+  assert.equal(
+    repairOrphanBrackets("You did all you could.]]"),
+    "You did all you could.",
+  );
+});
+
+test("repairOrphanBrackets: orphan ] mid-line is stripped, both sides kept", () => {
+  assert.equal(
+    repairOrphanBrackets("White House.] Yeah, like anyone's gonna believe that."),
+    "White House. Yeah, like anyone's gonna believe that.",
+  );
+});
+
+test("repairOrphanBrackets: orphan ] at start is stripped", () => {
+  assert.equal(
+    repairOrphanBrackets('] "Just whistle." That reminds me.'),
+    '"Just whistle." That reminds me.',
+  );
+});
+
+test("repairOrphanBrackets: clean text passes through unchanged", () => {
+  assert.equal(repairOrphanBrackets("Just plain dialogue."), "Just plain dialogue.");
+});
+
+test("repairOrphanBrackets: parentheses in normal prose are preserved", () => {
+  assert.equal(
+    repairOrphanBrackets("He said (loudly) the door opened."),
+    "He said (loudly) the door opened.",
+  );
+});
+
+test("repairOrphanBrackets: idempotent", () => {
+  const input = "Hey? [ Hey again. Door.]";
+  const once = repairOrphanBrackets(input);
+  const twice = repairOrphanBrackets(once);
+  assert.equal(once, twice);
 });

@@ -12,7 +12,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chunkDialogue, trimLongLines } from "../lib/wikiquote-parse";
+import { chunkDialogue, repairOrphanBrackets, trimLongLines } from "../lib/wikiquote-parse";
 import type { Movie, Quote, QuoteLine } from "../lib/types";
 
 const MOVIES_PATH = path.join(process.cwd(), "data", "movies.json");
@@ -21,18 +21,10 @@ const MIN_QUOTE_CHARS = 15;
 const REQUIRED_QUOTES = 5;
 const QUOTE_CAP = 20; // mirror scripts/build-quotes.ts
 
-function stripBrackets(s: string): string {
-  let prev: string;
-  do {
-    prev = s;
-    s = s.replace(/\[[^[\]]*\]/g, " ");
-  } while (s !== prev);
-  return s.replace(/\s+/g, " ").trim();
-}
-
 function cleanLine(l: QuoteLine): QuoteLine {
-  const text = trimLongLines(stripBrackets(l.text));
-  return { speaker: l.speaker, text };
+  const text = trimLongLines(repairOrphanBrackets(l.text));
+  const speaker = repairOrphanBrackets(l.speaker);
+  return { speaker, text };
 }
 
 function cleanQuote(q: Quote): Quote[] {
