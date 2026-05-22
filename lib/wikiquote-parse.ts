@@ -50,7 +50,7 @@ export function stripMarkup(input: string): string {
   s = s.replace(/<\/?[a-z][^>]*>/gi, ""); // remaining HTML tags
   for (const [k, v] of Object.entries(ENTITIES)) s = s.split(k).join(v);
   s = s.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
-  return repairOrphanBrackets(s);
+  return balanceQuotes(repairOrphanBrackets(s));
 }
 
 /**
@@ -87,6 +87,22 @@ export function repairOrphanBrackets(s: string): string {
   }
   s = s.replace(/\]/g, " ");
   return s.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Strip a single unbalanced ASCII `"` at a string edge. Wikiquote bullets
+ * frequently have a stray opening or closing `"` from editor sloppiness
+ * (e.g. `* Daya! break the doors."` — open quote never given). When the
+ * total `"` count is odd, drop the one at the leading or trailing edge.
+ * If the orphan is mid-text, leave the string alone (too risky to guess).
+ * Smart quotes (`“…”`) are not touched.
+ */
+export function balanceQuotes(s: string): string {
+  const count = (s.match(/"/g) ?? []).length;
+  if (count % 2 === 0) return s;
+  if (/"\s*$/.test(s)) return s.replace(/"\s*$/, "").trimEnd();
+  if (/^\s*"/.test(s)) return s.replace(/^\s*"/, "").trimStart();
+  return s;
 }
 
 // Long monologues are hard to read/scroll on mobile. Cap each spoken line at
@@ -206,7 +222,12 @@ function splitSections(wikitext: string): Section[] {
     const h2 = line.match(/^==\s*([^=].*?)\s*==\s*$/);
     if (h2) {
       sections.push(current);
-      const heading = h2[1]!.trim();
+      // Strip markup so wikilinked character headings
+      // (`==[[w:Bajirao Singham|Bajirao Singham]]==`) become bare names
+      // before they're used as speakers downstream. Also normalizes
+      // classify()'s SKIP_SECTION matching against headings like
+      // `==[[Cast]]==`.
+      const heading = stripMarkup(h2[1]!);
       current = { heading, kind: classify(heading), body: [] };
       continue;
     }

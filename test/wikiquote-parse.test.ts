@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  balanceQuotes,
   chunkDialogue,
   isRedirect,
   parseWikiquote,
@@ -501,6 +502,50 @@ test("dialogue: italic action between '''name''' and colon", () => {
   assert.equal(q.length, 1);
   assert.equal(q[0]!.lines[0]!.speaker, "Edith");
   assert.equal(q[0]!.lines[0]!.text, "I think we should have them over more often.");
+});
+
+test("character section: wikilinked heading becomes plain-text speaker", () => {
+  const wt = `==[[w:Bajirao Singham|Bajirao Singham]]==
+* This country wants you, not jail.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Bajirao Singham");
+});
+
+test("character section: wikilinked Cast heading is still skipped", () => {
+  const wt = `==[[Cast]]==
+* Some actor — Some character
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 0);
+});
+
+test("balanceQuotes: even count passes through", () => {
+  assert.equal(balanceQuotes('He said "hello" then left.'), 'He said "hello" then left.');
+});
+
+test("balanceQuotes: trailing orphan \" stripped", () => {
+  assert.equal(balanceQuotes('Daya! break the doors."'), "Daya! break the doors.");
+});
+
+test("balanceQuotes: leading orphan \" stripped", () => {
+  assert.equal(
+    balanceQuotes('"People get fooled easily. Mango is the favorite.'),
+    "People get fooled easily. Mango is the favorite.",
+  );
+});
+
+test("balanceQuotes: mid-text orphan is left alone (too risky)", () => {
+  // 1 quote char, mid-text — heuristic refuses to guess.
+  const input = "He said hello\" and left.";
+  assert.equal(balanceQuotes(input), input);
+});
+
+test("balanceQuotes: smart quotes are not touched", () => {
+  // “…” are different code points; only ASCII `"` is balanced.
+  const input = "He said “hello” and left.\"";
+  assert.equal(balanceQuotes(input), "He said “hello” and left.");
 });
 
 test("intro prose with bold title is not parsed as speaker", () => {
