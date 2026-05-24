@@ -20,6 +20,25 @@ test("parseWikiquote returns [] for a redirect", () => {
   assert.deepEqual(parseWikiquote("#REDIRECT [[Elsewhere]]"), []);
 });
 
+test("parseWikiquote: multi-line HTML comments don't leak into quotes", () => {
+  // Wikiquote editors occasionally leave block comments spanning many
+  // source lines. The per-line stripMarkup can't match those — the strip
+  // has to happen before splitSections splits on \n.
+  const wt = `== Dialogue ==
+:'''Cook''':  text before<!--
+- Comment from User:foo:
+multi-line note that should not appear
+-->  text after
+:'''Sally''': Something else.
+`;
+  const q = parseWikiquote(wt);
+  assert.equal(q.length, 1);
+  assert.equal(q[0]!.lines[0]!.speaker, "Cook");
+  assert.ok(!/<!--/.test(q[0]!.lines[0]!.text), `<!-- leaked: ${q[0]!.lines[0]!.text}`);
+  assert.ok(!/User:foo/.test(q[0]!.lines[0]!.text), `comment body leaked: ${q[0]!.lines[0]!.text}`);
+  assert.match(q[0]!.lines[0]!.text, /text before.*text after/);
+});
+
 test("stripMarkup: comment opener never survives nesting", () => {
   // HTML5 ends comments at the first `-->`, so a stray trailing `-->`
   // is just text. What matters is that the `<!--` opener doesn't escape.

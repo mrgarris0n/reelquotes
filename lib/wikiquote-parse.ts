@@ -223,6 +223,17 @@ function classify(heading: string): Section["kind"] {
 }
 
 function splitSections(wikitext: string): Section[] {
+  // Strip HTML comments BEFORE splitting on newlines — Wikiquote editors
+  // sometimes leave block comments that span many source lines
+  // (`<!-- - Comment from User:foo \n ... \n -->`). If we wait for
+  // stripMarkup to handle them per-line, only the partial fragments remain
+  // and the comment text leaks into the quote. Iterate to a fixed point so
+  // nested constructs collapse fully.
+  let prev: string;
+  do {
+    prev = wikitext;
+    wikitext = wikitext.replace(/<!--[\s\S]*?-->/g, "");
+  } while (wikitext !== prev);
   // Treat <br> as a hard line break so multi-speaker single-source-line
   // patterns (`:'''A''': hi<br>'''B''': hi back`, common in series season
   // subpages) split into one line per speaker before reaching the parser.
