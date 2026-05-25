@@ -233,13 +233,20 @@ export default function Page() {
     return f;
   }
 
-  async function startRound() {
+  async function startRound(scoreTokenOverride?: string | null) {
     setPhase({ kind: "loading" });
     try {
+      // Caller passes `null` explicitly when starting a fresh game — at that
+      // point setScoreToken(null) has been queued but our closure still
+      // captures the previous render's scoreToken. Without this override
+      // we'd send the old token and the server would continue the previous
+      // session, carrying its `outcomes` array into the "new" game's
+      // game-over breakdown.
+      const tokenToSend = scoreTokenOverride === undefined ? scoreToken : scoreTokenOverride;
       const res = await fetch("/api/round/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filters: currentFilters(), difficulty, scoreToken }),
+        body: JSON.stringify({ filters: currentFilters(), difficulty, scoreToken: tokenToSend }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -269,7 +276,7 @@ export default function Page() {
     setScoreToken(null);
     setSubmitName("");
     setSubmitState({ kind: "idle" });
-    void startRound();
+    void startRound(null);
   }
 
   async function submit(e: React.FormEvent) {
