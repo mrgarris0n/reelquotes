@@ -18,8 +18,8 @@
     "botid": "^1.5.11",
     "fastest-levenshtein": "^1.0.16",
     "next": "^16.2.11",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
