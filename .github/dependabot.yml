@@ -10,6 +10,15 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+    ignore:
+      # Next.js's TypeScript setup check (verify-typescript-setup.js) still
+      # requires typescript/lib/typescript.js, which TS7's restructured
+      # package no longer ships — every proposed 7.x bump breaks the Vercel
+      # build (recurred across PR #18 and #20). Revisit once Next.js's
+      # useTypeScriptCli checker (added in 16.3.0) leaves experimental status:
+      # https://nextjs.org/docs/app/api-reference/config/next-config-js/useTypeScriptCli
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
