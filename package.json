@@ -1,6 +1,6 @@
 {
   "name": "reelquotes",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -34,6 +34,7 @@
   },
   "overrides": {
     "postcss": "^8.5.26",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "zod": "^4.6.6"
   }
 }
